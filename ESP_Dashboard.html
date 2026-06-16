@@ -1,0 +1,3802 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ESP Well Type Dashboard — Frontera Energy</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --petrol-900: #0a1f1d;
+      --petrol-800: #0e2d2a;
+      --petrol-700: #123d38;
+      --petrol-600: #1a524b;
+      --petrol-500: #266b62;
+      --petrol-400: #164930;
+      --petrol-300: #287b43;
+      --petrol-200: #19621f;
+      --petrol-100: #ffffff;
+      --petrol-50: #f0f8f7;
+      --glow-rgb: 38, 107, 98;
+      --ink-900: #0f1114;
+      --ink-800: #1a1d23;
+      --ink-700: #2c3038;
+      --ink-600: #3e434d;
+      --ink-500: #5a6170;
+      --ink-400: #7d8491;
+      --ink-300: #a1a7b3;
+      --ink-200: #c8ccd4;
+      --ink-100: #e4e7ec;
+      --ink-50: #f3f4f7;
+    }
+
+    .theme-jade {
+      --petrol-900: #080807;
+      --petrol-800: #0d2127;
+      --petrol-700: #13343d;
+      --petrol-600: #2a6469;
+      --petrol-500: #4d9695;
+      --petrol-400: #6ea99a;
+      --petrol-300: #8fbe9f;
+      --petrol-200: #b1d4bd;
+      --petrol-100: #d0e7d5;
+      --petrol-50: #e5e5ce;
+      --glow-rgb: 77, 150, 149;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: linear-gradient(160deg, #f3f4f7 0%, #f8f9fb 40%, var(--petrol-50) 100%);
+      color: var(--ink-900);
+      min-height: 100vh;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* ═══ Ambient Glow Orbs ═══ */
+    .ambient-glow {
+      position: absolute;
+      width: 45vw;
+      height: 45vw;
+      max-width: 600px;
+      max-height: 600px;
+      border-radius: 50%;
+      filter: blur(130px);
+      opacity: 0.12;
+      pointer-events: none;
+      z-index: 0;
+      transition: background 0.8s ease;
+    }
+
+    .glow-1 {
+      top: -150px;
+      right: -150px;
+      background: radial-gradient(circle, var(--petrol-400) 0%, transparent 70%);
+    }
+
+    .glow-2 {
+      bottom: 200px;
+      left: -200px;
+      background: radial-gradient(circle, var(--petrol-300) 0%, transparent 70%);
+    }
+
+    ::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--ink-50);
+      border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--ink-300);
+      border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--petrol-600);
+    }
+
+    /* ═══ Single font — no mono ═══ */
+    .mono {
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+
+    /* ═══ KPI Cards — petroleum blue accents ═══ */
+    .kpi-card {
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--ink-100);
+      border-radius: 12px;
+      padding: 20px 24px;
+      transition: all .25s cubic-bezier(.4, 0, .2, 1);
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(10, 46, 61, .04);
+    }
+
+    .kpi-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      border-radius: 12px 0 0 12px;
+      background: var(--petrol-600);
+      opacity: 0.6;
+      transition: opacity .25s, width .25s;
+    }
+
+    .kpi-card:nth-child(1)::before {
+      background: var(--petrol-700);
+    }
+
+    .kpi-card:nth-child(2)::before {
+      background: var(--petrol-600);
+    }
+
+    .kpi-card:nth-child(3)::before {
+      background: var(--petrol-500);
+    }
+
+    .kpi-card:nth-child(4)::before {
+      background: var(--petrol-400);
+    }
+
+    .kpi-card:nth-child(5)::before {
+      background: var(--petrol-800);
+    }
+
+    .kpi-card:hover {
+      box-shadow: 0 10px 30px -5px rgba(var(--glow-rgb), 0.2), 0 4px 12px rgba(var(--glow-rgb), 0.08);
+      transform: translateY(-3px);
+      border-color: var(--petrol-300);
+    }
+
+    .kpi-card:hover::before {
+      opacity: 1;
+      width: 6px;
+      box-shadow: 0 0 10px var(--petrol-400);
+    }
+
+    /* ═══ Tags — cohesive petroleum palette ═══ */
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: .05em;
+      padding: 3px 9px;
+      border-radius: 6px;
+      text-transform: uppercase;
+      transition: all .2s ease;
+    }
+
+    .tag-green {
+      background: var(--petrol-50);
+      color: var(--petrol-700);
+      box-shadow: 0 1px 3px rgba(10, 46, 61, .08);
+    }
+
+    .tag-blue {
+      background: var(--petrol-100);
+      color: var(--petrol-800);
+      box-shadow: 0 1px 3px rgba(10, 46, 61, .10);
+    }
+
+    .tag-amber {
+      background: var(--ink-50);
+      color: var(--ink-700);
+      box-shadow: 0 1px 3px rgba(10, 46, 61, .06);
+    }
+
+    .tag-slate {
+      background: var(--ink-50);
+      color: var(--ink-600);
+      box-shadow: 0 1px 3px rgba(10, 46, 61, .05);
+    }
+
+    .tag-rose {
+      background: var(--petrol-50);
+      color: var(--petrol-900);
+      box-shadow: 0 1px 3px rgba(10, 46, 61, .08);
+    }
+
+    select {
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%235a6170' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      background-size: 16px;
+      transition: all .25s cubic-bezier(.4, 0, .2, 1);
+    }
+
+    select:hover {
+      border-color: var(--petrol-400) !important;
+      box-shadow: 0 0 0 3px rgba(21, 94, 117, .05);
+    }
+
+    select:focus {
+      outline: none;
+      border-color: var(--petrol-600) !important;
+      box-shadow: 0 0 0 3px rgba(21, 94, 117, .12);
+    }
+
+    .row-hover {
+      transition: all .2s ease;
+    }
+
+    .row-hover:hover {
+      background: linear-gradient(90deg, var(--petrol-50) 0%, #fafbfc 100%) !important;
+    }
+
+    /* ═══ Well SVG interactive parts ═══ */
+    .well-svg-part {
+      transition: filter .25s ease;
+      cursor: pointer;
+    }
+
+    .well-svg-part:hover {
+      filter: brightness(1.2) drop-shadow(0 0 10px var(--petrol-300));
+    }
+
+    .badge-direction {
+      display: inline-flex;
+      gap: 4px;
+      align-items: center;
+      font-size: 11px;
+      font-weight: 600;
+      background: var(--ink-50);
+      padding: 3px 10px;
+      border-radius: 20px;
+      border: 1px solid var(--ink-100);
+    }
+
+    .chart-wrap {
+      position: relative;
+      height: 180px;
+      flex-shrink: 0;
+    }
+
+    .chart-wrap-flex {
+      position: relative;
+      flex-grow: 1;
+      min-height: 180px;
+    }
+
+    .chart-wrap canvas {
+      width: 100% !important;
+    }
+
+    /* ═══ Sim Inputs ═══ */
+    .sim-input {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      border: 1px solid var(--ink-200);
+      border-radius: 6px;
+      padding: 5px 8px;
+      background: var(--ink-50);
+      color: var(--ink-900);
+      width: 100%;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .sim-input:focus {
+      outline: none;
+      border-color: var(--petrol-500);
+      background: #fff;
+      box-shadow: 0 0 0 3px rgba(21, 94, 117, .10);
+    }
+
+    .sim-input:hover:not(:focus) {
+      border-color: var(--petrol-300);
+      background: #fff;
+    }
+
+    .section-title {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--ink-500);
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .section-title::before {
+      content: '';
+      display: inline-block;
+      width: 3px;
+      height: 12px;
+      border-radius: 2px;
+      background: var(--petrol-600);
+      flex-shrink: 0;
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--ink-100);
+      margin: 0;
+    }
+
+    .nav-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--ink-200);
+      transition: all .2s ease;
+    }
+
+    .nav-dot.active {
+      background: var(--petrol-600);
+      box-shadow: 0 0 6px rgba(21, 94, 117, .3);
+    }
+
+    @keyframes pulse-glow {
+
+      0%,
+      100% {
+        opacity: 0.7;
+        box-shadow: 0 0 0 0 rgba(var(--glow-rgb), 0.7);
+      }
+
+      50% {
+        opacity: 1;
+        box-shadow: 0 0 8px 3px rgba(var(--glow-rgb), 0.4);
+      }
+    }
+
+    .live-dot {
+      animation: pulse-glow 2s infinite ease-in-out;
+    }
+
+    /* ═══ Panels ═══ */
+    .bg-white {
+      background: rgba(255, 255, 255, 0.92) !important;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+
+    /* ═══ Table enhancements ═══ */
+    #sim-body tr:nth-child(even) {
+      background: rgba(243, 244, 247, 0.4);
+    }
+
+    #sim-body tr {
+      border-left: 3.5px solid transparent;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    #sim-body tr:hover {
+      border-left-color: var(--petrol-500);
+      background: rgba(var(--glow-rgb), 0.04) !important;
+      box-shadow: inset 4px 0 10px -5px rgba(var(--glow-rgb), 0.3);
+    }
+
+    /* ═══ Ficha Técnica — enhanced visibility ═══ */
+    #ft-cable,
+    #ft-bomba,
+    #ft-motor,
+    #ft-estab,
+    #ft-material,
+    #ft-prof,
+    #ft-variador {
+      font-weight: 700 !important;
+    }
+
+    #ft-cable,
+    #ft-bomba,
+    #ft-motor {
+      background: linear-gradient(90deg, rgba(var(--glow-rgb), .08) 0%, transparent 100%);
+      padding: 4px 8px;
+      border-radius: 6px;
+      border-left: 3px solid var(--petrol-500);
+      color: var(--petrol-800) !important;
+      font-size: 11px !important;
+      line-height: 1.5 !important;
+    }
+
+    #ft-estab {
+      background: linear-gradient(90deg, rgba(var(--glow-rgb), .08) 0%, transparent 100%);
+      padding: 2px 8px;
+      border-radius: 6px;
+      color: var(--petrol-700) !important;
+    }
+
+    #ft-prof {
+      color: var(--petrol-700) !important;
+    }
+
+    /* ═══ KPI Cable field ═══ */
+    #kpi-cable {
+      background: linear-gradient(90deg, rgba(var(--glow-rgb), .07) 0%, transparent 100%);
+      padding: 3px 6px;
+      border-radius: 4px;
+      font-size: 10px !important;
+      font-weight: 600 !important;
+      color: var(--petrol-800) !important;
+      border-left: 2px solid var(--petrol-500);
+    }
+
+    #kpi-dir {
+      font-size: 12px !important;
+    }
+
+    /* ═══ Header ═══ */
+    header {
+      background: rgba(255, 255, 255, 0.95) !important;
+      backdrop-filter: blur(16px) !important;
+      -webkit-backdrop-filter: blur(16px) !important;
+      box-shadow: 0 1px 3px rgba(10, 46, 61, .05);
+      border-bottom: 2.5px solid transparent;
+      border-image: linear-gradient(90deg, var(--petrol-800) 0%, var(--petrol-400) 50%, var(--ink-100) 100%) 1;
+    }
+
+    /* ═══ Button polish ═══ */
+    button {
+      transition: all .2s cubic-bezier(.4, 0, .2, 1) !important;
+    }
+
+    button:hover {
+      transform: translateY(-1.5px);
+      box-shadow: 0 4px 12px rgba(var(--glow-rgb), 0.15);
+      border-color: var(--petrol-300) !important;
+    }
+
+    button:active {
+      transform: translateY(0) scale(0.98);
+    }
+
+    /* ═══ Filter section ═══ */
+    section.no-print {
+      box-shadow: 0 1px 4px rgba(10, 46, 61, .03);
+    }
+
+    /* ═══ Sim total badge ═══ */
+    #sim-total-badge {
+      background: var(--petrol-50) !important;
+      border-color: var(--petrol-200) !important;
+      box-shadow: 0 2px 8px rgba(10, 46, 61, .08);
+      transition: all .3s ease;
+    }
+
+    #sim-total-badge:hover {
+      box-shadow: 0 4px 16px rgba(10, 46, 61, .12);
+      transform: scale(1.02);
+    }
+
+    /* ═══ Table footer total ═══ */
+    #sim-total-cell {
+      background: linear-gradient(90deg, transparent 0%, rgba(21, 94, 117, .04) 100%);
+      font-size: 18px !important;
+    }
+
+    /* ═══ Rounded panels ═══ */
+    .rounded-xl {
+      background: rgba(255, 255, 255, 0.82) !important;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(var(--glow-rgb), 0.12) !important;
+      box-shadow: 0 4px 20px -5px rgba(0, 0, 0, 0.02), 0 0 1px rgba(var(--glow-rgb), 0.1);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .rounded-xl:hover {
+      box-shadow: 0 12px 30px -8px rgba(var(--glow-rgb), 0.15), 0 0 10px 1px rgba(var(--glow-rgb), 0.1);
+      border-color: rgba(var(--glow-rgb), 0.3) !important;
+      transform: translateY(-2px);
+    }
+
+    /* ═══ Table header ═══ */
+    thead tr {
+      background: linear-gradient(90deg, var(--ink-50) 0%, #f0f2f5 50%, var(--ink-50) 100%) !important;
+    }
+
+    /* ═══ Last KPI card accent ═══ */
+    .kpi-card:last-child {
+      border-bottom: 2px solid rgba(21, 94, 117, .2);
+    }
+
+    @media print {
+
+      header,
+      .no-print {
+        display: none !important;
+      }
+
+      body {
+        background: #fff;
+      }
+
+      .kpi-card {
+        box-shadow: none !important;
+        border: 1px solid #ddd !important;
+        backdrop-filter: none !important;
+        background: #fff !important;
+        transform: none !important;
+      }
+
+      .kpi-card::before {
+        display: none;
+      }
+
+      .bg-white {
+        backdrop-filter: none !important;
+        background: #fff !important;
+      }
+
+      .rounded-xl {
+        box-shadow: none !important;
+      }
+
+      #ft-cable,
+      #ft-bomba,
+      #ft-motor,
+      #ft-estab,
+      #kpi-cable {
+        background: none !important;
+        border-left: none !important;
+        padding: 0 !important;
+      }
+    }
+
+
+
+    /* SVG specific pulse animations */
+    @keyframes svg-pulse-glow {
+      0% {
+        r: 1.5;
+        opacity: 0.4;
+        filter: drop-shadow(0 0 1px var(--petrol-300));
+      }
+
+      50% {
+        r: 3.5;
+        opacity: 1;
+        filter: drop-shadow(0 0 4px var(--petrol-500));
+      }
+
+      100% {
+        r: 1.5;
+        opacity: 0.4;
+        filter: drop-shadow(0 0 1px var(--petrol-300));
+      }
+    }
+
+    .svg-pulse {
+      animation: svg-pulse-glow 2.5s infinite ease-in-out;
+    }
+
+    @keyframes fluid-flow {
+      0% {
+        stroke-dashoffset: 20;
+      }
+
+      100% {
+        stroke-dashoffset: 0;
+      }
+    }
+
+    .flow-line {
+      stroke-dasharray: 4 4;
+      animation: fluid-flow 3s linear infinite;
+    }
+  </style>
+</head>
+
+<body class="min-h-screen relative overflow-x-hidden">
+  <!-- Dynamic Ambient Glow Orbs -->
+  <div class="ambient-glow glow-1 no-print"></div>
+  <div class="ambient-glow glow-2 no-print"></div>
+
+  <!-- ═══════════ HEADER ═══════════ -->
+  <header class="bg-white border-b border-gray-200 sticky top-0 z-50">
+    <div class="max-w-[1400px] mx-auto flex items-center justify-between px-4 py-2.5">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background:var(--petrol-700)">
+          <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+        </div>
+        <div>
+          <p class="text-sm font-700 leading-tight" style="color:var(--ink-900)">ESP Design Studio <span
+              style="color:var(--ink-400)" class="font-400">/ Pozos Tipo</span></p>
+          <p class="text-[10px] font-500 tracking-wide uppercase leading-none mt-0.5" style="color:var(--ink-400)">
+            Frontera Energy ·
+            CAPEX & Diseño de Subsuelo 2026</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 no-print">
+        <span class="flex items-center gap-1 text-[10px] font-700 rounded-full px-2.5 py-1"
+          style="color:var(--ink-700);background:var(--ink-50);border:1px solid var(--ink-200)">
+          TRM: $4.000 COP
+        </span>
+        <span class="flex items-center gap-1.5 text-[10px] font-600 rounded-full px-3 py-1"
+          style="color:var(--petrol-800);background:var(--petrol-50);border:1px solid var(--petrol-200)">
+          <span class="w-1.5 h-1.5 rounded-full live-dot" style="background:var(--petrol-500)"></span>
+          Base 2026 Activa
+        </span>
+        <button onclick="toggleTheme()" id="btn-theme"
+          class="text-[10px] font-600 rounded-lg px-3 py-1.5 transition-colors"
+          style="color:var(--ink-600);background:var(--ink-50);border:1px solid var(--ink-200)">Tema: Azul</button>
+        <button onclick="window.print()" class="text-[10px] font-600 rounded-lg px-3 py-1.5 transition-colors"
+          style="color:var(--ink-600);background:var(--ink-50);border:1px solid var(--ink-200)">Imprimir
+          PDF</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ═══════════ MAIN ═══════════ -->
+  <main class="max-w-[1400px] mx-auto px-4 py-4 space-y-4">
+
+    <!-- FILTROS -->
+    <section class="bg-white border border-gray-200 rounded-xl px-4 py-3 flex flex-wrap gap-3 items-end no-print">
+      <div class="flex-1 min-w-[180px]">
+        <label class="section-title block mb-1.5">Campo / Bloque</label>
+        <select id="sel-campo" onchange="onCampo()"
+          class="w-full rounded-lg px-3 py-2 text-sm font-500 focus:outline-none transition-colors cursor-pointer pr-8"
+          style="background:var(--ink-50);border:1px solid var(--ink-200);color:var(--ink-800)"></select>
+      </div>
+      <div class="flex-1 min-w-[180px]">
+        <label class="section-title block mb-1.5">Pozo Tipo</label>
+        <select id="sel-pozo" onchange="onPozo()"
+          class="w-full rounded-lg px-3 py-2 text-sm font-500 focus:outline-none transition-colors cursor-pointer pr-8"
+          style="background:var(--ink-50);border:1px solid var(--ink-200);color:var(--ink-800)"></select>
+      </div>
+      <div class="flex-1 min-w-[220px]">
+        <label class="section-title block mb-1.5">Cargar Base de Datos (Excel)</label>
+        <div class="relative flex items-center">
+          <input type="file" id="excel-files" multiple accept=".xlsx" class="hidden"
+            onchange="importExcelFiles(event)" />
+          <button onclick="document.getElementById('excel-files').click()"
+            class="w-full text-left rounded-lg px-3 py-2 text-sm font-500 transition-all flex items-center justify-between border border-dashed hover:border-solid hover:bg-emerald-50/20"
+            style="background:var(--ink-50);color:var(--ink-800); border-color:var(--petrol-300)">
+            <span id="upload-status" class="truncate mr-2 text-xs font-600">Actualizar con Excel (.xlsx)</span>
+            <svg class="w-4 h-4 flex-shrink-0 transition-transform hover:-translate-y-0.5"
+              style="color:var(--petrol-600)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="restoreData()" class="text-[11px] font-600 rounded-lg px-3 py-2 transition-colors"
+          style="color:var(--ink-600);background:var(--ink-50);border:1px solid var(--ink-200)">↺
+          Restaurar</button>
+      </div>
+    </section>
+
+    <!-- KPI ROW -->
+    <section class="grid grid-cols-2 lg:grid-cols-5 gap-3">
+      <div class="kpi-card lg:col-span-1 flex flex-col justify-between">
+        <div>
+          <p class="section-title mb-2">CAPEX Total</p>
+          <p id="kpi-capex" class="mono text-xl font-700 leading-none" style="color:var(--ink-900)">$0</p>
+          <p id="kpi-capex-sub" class="text-[11px] mt-1.5 font-500" style="color:var(--ink-400)">Sin IVA · USD</p>
+        </div>
+        <!-- Contenedor de Descuento -->
+        <div id="kpi-capex-disc-container" class="mt-2 pt-1.5 border-t border-gray-100 flex flex-col gap-0.5 hidden">
+          <p class="text-[9px] font-700 uppercase tracking-wider text-teal-700">Con Descuento:</p>
+          <p id="kpi-capex-disc" class="mono text-xs font-700 text-teal-800">$0</p>
+          <div class="mt-1">
+            <span id="kpi-capex-saving"
+              class="text-[9px] font-600 text-emerald-600 bg-emerald-50 border border-emerald-100 px-1 py-0.5 rounded inline-block">Ahorro:
+              $0</span>
+          </div>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <p class="section-title mb-2">Caudal Diseño</p>
+        <p id="kpi-caudal" class="mono text-lg font-700 leading-none" style="color:var(--petrol-700)">—</p>
+        <p class="text-[11px] mt-1.5 font-500" style="color:var(--ink-400)">BFPD (rango)</p>
+      </div>
+      <div class="kpi-card">
+        <p class="section-title mb-2">Prof. Intake</p>
+        <p id="kpi-depth" class="mono text-lg font-700 leading-none" style="color:var(--ink-900)">—</p>
+        <p class="text-[11px] mt-1.5 font-500" style="color:var(--ink-400)">ft-MD</p>
+      </div>
+      <div class="kpi-card">
+        <p class="section-title mb-2">TDH (rango)</p>
+        <p id="kpi-tdh" class="mono text-lg font-700 leading-none" style="color:var(--ink-900)">—</p>
+        <p class="text-[11px] mt-1.5 font-500" style="color:var(--ink-400)">ft</p>
+      </div>
+      <div class="kpi-card">
+        <p class="section-title mb-2">Dirección / Cable</p>
+        <p id="kpi-dir" class="text-sm font-600 leading-tight" style="color:var(--ink-900)">—</p>
+        <p id="kpi-cable" class="text-[10px] mt-1 font-500 leading-tight truncate" style="color:var(--ink-400)">—</p>
+      </div>
+    </section>
+
+    <!-- TRIPLE PANEL REDISEÑADO -->
+    <section class="grid grid-cols-1 lg:grid-cols-12 gap-3">
+
+      <!-- COLUMNA IZQUIERDA: Sarta ESP (Full Height) -->
+      <div class="lg:col-span-3 xl:col-span-2 flex flex-col">
+        <div class="bg-white border border-gray-200 rounded-xl p-3 flex-1 flex flex-col justify-between h-full"
+          style="background:linear-gradient(180deg, rgba(255,255,255,0.95) 0%, var(--petrol-50) 100%)">
+          <div class="flex items-center justify-between mb-2">
+            <p class="section-title">Sarta ESP — Vista Esquemática</p>
+            <div id="dir-badge" class="badge-direction">
+              <span class="w-2 h-2 rounded-full" style="background:var(--petrol-500)"></span>
+              <span class="text-[10px] font-600" style="color:var(--ink-500)">Vertical</span>
+            </div>
+          </div>
+          <div class="flex justify-center flex-1 items-center w-full relative overflow-hidden" id="well-svg-viewport"
+            style="min-height:380px; background:linear-gradient(180deg, #f8f9fb 0%, var(--petrol-50) 100%); border-radius:8px; border: 1px solid var(--ink-100);">
+            <svg id="well-svg" viewBox="-5 0 170 400" class="w-full h-full select-none"
+              style="max-width:250px; height:auto;">
+              <defs>
+                <!-- Specular metal highlights for realistic 3D look -->
+                <linearGradient id="gMetal3D" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stop-color="#1e293b" />
+                  <stop offset="15%" stop-color="#475569" />
+                  <stop offset="30%" stop-color="#94a3b8" />
+                  <stop offset="45%" stop-color="#cbd5e1" />
+                  <stop offset="55%" stop-color="#f8fafc" />
+                  <stop offset="65%" stop-color="#cbd5e1" />
+                  <stop offset="80%" stop-color="#94a3b8" />
+                  <stop offset="90%" stop-color="#475569" />
+                  <stop offset="100%" stop-color="#1e293b" />
+                </linearGradient>
+                <linearGradient id="gThemeMetal" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stop-color="var(--petrol-900)" />
+                  <stop offset="20%" stop-color="var(--petrol-700)" />
+                  <stop offset="45%" stop-color="var(--petrol-500)" />
+                  <stop offset="55%" stop-color="var(--petrol-200)" />
+                  <stop offset="65%" stop-color="var(--petrol-500)" />
+                  <stop offset="85%" stop-color="var(--petrol-700)" />
+                  <stop offset="100%" stop-color="var(--petrol-900)" />
+                </linearGradient>
+                <linearGradient id="gThemeMetal2" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stop-color="var(--petrol-800)" />
+                  <stop offset="20%" stop-color="var(--petrol-600)" />
+                  <stop offset="45%" stop-color="var(--petrol-400)" />
+                  <stop offset="55%" stop-color="var(--petrol-100)" />
+                  <stop offset="65%" stop-color="var(--petrol-400)" />
+                  <stop offset="85%" stop-color="var(--petrol-600)" />
+                  <stop offset="100%" stop-color="var(--petrol-800)" />
+                </linearGradient>
+                <linearGradient id="gMotorMetal" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stop-color="var(--petrol-900)" />
+                  <stop offset="15%" stop-color="var(--petrol-800)" />
+                  <stop offset="45%" stop-color="var(--petrol-600)" />
+                  <stop offset="55%" stop-color="var(--petrol-300)" />
+                  <stop offset="65%" stop-color="var(--petrol-600)" />
+                  <stop offset="85%" stop-color="var(--petrol-800)" />
+                  <stop offset="100%" stop-color="var(--petrol-900)" />
+                </linearGradient>
+                <linearGradient id="gGold" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stop-color="#78350f" />
+                  <stop offset="30%" stop-color="#b45309" />
+                  <stop offset="50%" stop-color="#f59e0b" />
+                  <stop offset="70%" stop-color="#fbbf24" />
+                  <stop offset="90%" stop-color="#b45309" />
+                  <stop offset="100%" stop-color="#78350f" />
+                </linearGradient>
+                <linearGradient id="gCasing" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stop-color="#334155" />
+                  <stop offset="30%" stop-color="#64748b" />
+                  <stop offset="70%" stop-color="#64748b" />
+                  <stop offset="100%" stop-color="#334155" />
+                </linearGradient>
+                <linearGradient id="gFluid" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="rgba(var(--glow-rgb), 0.15)" />
+                  <stop offset="100%" stop-color="rgba(var(--glow-rgb), 0.45)" />
+                </linearGradient>
+                <linearGradient id="gBg" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#f8f9fb" />
+                  <stop offset="100%" stop-color="var(--petrol-50)" />
+                </linearGradient>
+
+                <!-- Patterns -->
+                <!-- Mesh Screen for Intake -->
+                <pattern id="pScreen" width="3" height="3" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+                  <rect width="3" height="3" fill="none" />
+                  <circle cx="1.5" cy="1.5" r="0.8" fill="var(--petrol-800)" />
+                </pattern>
+                <!-- Sandstone geological pattern -->
+                <pattern id="pSand" width="4" height="4" patternUnits="userSpaceOnUse">
+                  <rect width="4" height="4" fill="#fef3c7" />
+                  <circle cx="1" cy="1" r="0.3" fill="#d97706" opacity="0.6" />
+                  <circle cx="3" cy="2.5" r="0.3" fill="#b45309" opacity="0.6" />
+                </pattern>
+                <!-- Cement dots pattern -->
+                <pattern id="pCement" width="3" height="3" patternUnits="userSpaceOnUse">
+                  <rect width="3" height="3" fill="#cbd5e1" />
+                  <circle cx="1" cy="1" r="0.4" fill="#475569" opacity="0.5" />
+                  <circle cx="2" cy="2" r="0.3" fill="#94a3b8" opacity="0.8" />
+                </pattern>
+
+                <!-- Arrow markers -->
+                <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="3" markerHeight="3"
+                  orient="auto-start-reverse">
+                  <path d="M 0 1.5 L 8 5 L 0 8.5 z" fill="var(--petrol-600)" />
+                </marker>
+                <marker id="arrowInflow" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="3.5" markerHeight="3.5"
+                  orient="auto-start-reverse">
+                  <path d="M 0 2 L 6 5 L 0 8 Z" fill="var(--petrol-500)" />
+                </marker>
+              </defs>
+
+              <!-- Background -->
+              <rect x="-10" y="0" width="220" height="400" fill="url(#gBg)" />
+
+              <!-- Depth scale (left side) -->
+              <g opacity="0.7">
+                <line x1="14" y1="15" x2="14" y2="370" stroke="#94a3b8" stroke-width="0.6" />
+                <line x1="11" y1="15" x2="17" y2="15" stroke="#475569" stroke-width="1" />
+                <text x="14" y="9" fill="#475569" font-size="5" font-weight="700" text-anchor="middle"
+                  font-family="DM Sans, sans-serif">0 ft</text>
+
+                <line x1="11" y1="100" x2="15" y2="100" stroke="#94a3b8" stroke-width="0.5" />
+                <text x="9" y="102" fill="#64748b" font-size="4" font-weight="600" text-anchor="end"
+                  font-family="DM Sans, sans-serif">1,000</text>
+
+                <line x1="11" y1="190" x2="15" y2="190" stroke="#94a3b8" stroke-width="0.5" />
+                <text x="9" y="192" fill="#64748b" font-size="4" font-weight="600" text-anchor="end"
+                  font-family="DM Sans, sans-serif">2,000</text>
+
+                <line x1="11" y1="280" x2="15" y2="280" stroke="#94a3b8" stroke-width="0.5" />
+                <text x="9" y="282" fill="#64748b" font-size="4" font-weight="600" text-anchor="end"
+                  font-family="DM Sans, sans-serif">3,000</text>
+
+                <line x1="11" y1="370" x2="17" y2="370" stroke="#475569" stroke-width="1" />
+                <text x="14" y="378" fill="#475569" font-size="5" font-weight="700" text-anchor="middle"
+                  font-family="DM Sans, sans-serif">Intake</text>
+              </g>
+
+              <!-- Geological Formation Backdrops (bottom section) -->
+              <rect x="18" y="360" width="182" height="40" rx="0 0 8 8" fill="url(#pSand)" opacity="0.9" />
+              <!-- Shale layer at the very bottom -->
+              <rect x="18" y="386" width="182" height="14" rx="0 0 8 8" fill="#cbd5e1" />
+              <line x1="18" y1="386" x2="200" y2="386" stroke="#94a3b8" stroke-width="0.8" stroke-dasharray="3 3" />
+              <line x1="18" y1="360" x2="200" y2="360" stroke="#7d8491" stroke-width="1" stroke-dasharray="6 3" />
+              <text x="110" y="396" fill="#475569" font-size="5.5" font-weight="800" text-anchor="middle"
+                font-family="DM Sans, sans-serif" letter-spacing="0.05em">FORMACIÓN PRODUCTORA</text>
+
+              <!-- Borehole Wall (Hoyo Perforado) -->
+              <path d="M 52 18 L 52 360 Q 51 365 52 370 T 52 400" fill="none" stroke="#64748b" stroke-width="0.5"
+                stroke-dasharray="1 1" />
+              <path d="M 108 18 L 108 360 Q 109 365 108 370 T 108 400" fill="none" stroke="#64748b" stroke-width="0.5"
+                stroke-dasharray="1 1" />
+
+              <!-- Cement Sheath behind Casing (Anillo de Cemento) -->
+              <rect x="52" y="18" width="12" height="342" fill="url(#pCement)" />
+              <rect x="96" y="18" width="12" height="342" fill="url(#pCement)" />
+
+              <!-- Casing (Revestimiento de Acero) -->
+              <!-- Solid Casing outer and inner boundary lines -->
+              <rect x="64" y="18" width="32" height="342" fill="url(#gCasing)" opacity="0.12" />
+              <line x1="64" y1="18" x2="64" y2="360" stroke="#475569" stroke-width="1.2" />
+              <line x1="96" y1="18" x2="96" y2="360" stroke="#475569" stroke-width="1.2" />
+              <!-- Casing Joints/Collars -->
+              <rect x="63.5" y="90" width="1" height="4" fill="#1e293b" />
+              <rect x="95.5" y="90" width="1" height="4" fill="#1e293b" />
+              <rect x="63.5" y="180" width="1" height="4" fill="#1e293b" />
+              <rect x="95.5" y="180" width="1" height="4" fill="#1e293b" />
+              <rect x="63.5" y="270" width="1" height="4" fill="#1e293b" />
+              <rect x="95.5" y="270" width="1" height="4" fill="#1e293b" />
+
+              <!-- Annulus Fluid Level (Oil/Water column) -->
+              <rect x="64.8" y="140" width="30.4" height="220" fill="url(#gFluid)" />
+              <!-- Fluid meniscus wave -->
+              <path d="M 64 140 Q 72 137 80 140 T 96 140" fill="none" stroke="var(--petrol-400)" stroke-width="1"
+                opacity="0.8" />
+              <!-- Annulus Bubbles -->
+              <circle cx="68" cy="220" r="0.8" fill="#fff" opacity="0.6" />
+              <circle cx="70" cy="180" r="0.5" fill="#fff" opacity="0.4" />
+              <circle cx="92" cy="260" r="0.7" fill="#fff" opacity="0.5" />
+              <circle cx="91" cy="160" r="0.9" fill="#fff" opacity="0.6" />
+              <circle cx="67" cy="300" r="0.6" fill="#fff" opacity="0.5" />
+
+              <!-- Perforations & Inflow (Túneles de Cañoneo) -->
+              <g stroke="var(--petrol-600)" stroke-width="1" opacity="0.95">
+                <!-- Left Side Perfs -->
+                <line x1="53" y1="366" x2="64" y2="366" stroke="#111" stroke-width="1.2" />
+                <line x1="53" y1="374" x2="64" y2="374" stroke="#111" stroke-width="1.2" />
+                <line x1="53" y1="382" x2="64" y2="382" stroke="#111" stroke-width="1.2" />
+                <!-- Right Side Perfs -->
+                <line x1="96" y1="366" x2="107" y2="366" stroke="#111" stroke-width="1.2" />
+                <line x1="96" y1="374" x2="107" y2="374" stroke="#111" stroke-width="1.2" />
+                <line x1="96" y1="382" x2="107" y2="382" stroke="#111" stroke-width="1.2" />
+
+                <!-- Fluid flow paths entering the wellbore (animated appearance with flow-line) -->
+                <path d="M 45 366 L 63 366" fill="none" stroke="var(--petrol-500)" stroke-width="0.8" class="flow-line"
+                  marker-end="url(#arrowInflow)" />
+                <path d="M 45 374 L 63 374" fill="none" stroke="var(--petrol-500)" stroke-width="0.8" class="flow-line"
+                  marker-end="url(#arrowInflow)" />
+                <path d="M 45 382 L 63 382" fill="none" stroke="var(--petrol-500)" stroke-width="0.8" class="flow-line"
+                  marker-end="url(#arrowInflow)" />
+
+                <path d="M 115 366 L 97 366" fill="none" stroke="var(--petrol-500)" stroke-width="0.8" class="flow-line"
+                  marker-end="url(#arrowInflow)" />
+                <path d="M 115 374 L 97 374" fill="none" stroke="var(--petrol-500)" stroke-width="0.8" class="flow-line"
+                  marker-end="url(#arrowInflow)" />
+                <path d="M 115 382 L 97 382" fill="none" stroke="var(--petrol-500)" stroke-width="0.8" class="flow-line"
+                  marker-end="url(#arrowInflow)" />
+              </g>
+
+              <!-- Equipos de Superficie (Skid / Casita) -->
+              <g class="well-svg-part" onclick="hRow('Variador')"
+                title="Equipos de Superficie (Hacer clic para resaltar)">
+                <!-- Skid Platform -->
+                <rect x="20" y="16.5" width="36" height="1.5" rx="0.3" fill="url(#gMetal3D)" stroke="#334155"
+                  stroke-width="0.3" />
+
+                <!-- VSD Control House / Cabinet -->
+                <rect x="22" y="3" width="15" height="13.5" rx="0.5" fill="#f1f5f9" stroke="#334155"
+                  stroke-width="0.4" />
+                <!-- Door -->
+                <rect x="23.5" y="4.5" width="12" height="11" fill="#e2e8f0" stroke="#475569" stroke-width="0.3" />
+                <!-- Screen -->
+                <rect x="25.5" y="5.5" width="8" height="4" fill="#0f172a" rx="0.2" />
+                <!-- Waveform inside screen -->
+                <path d="M 26.5 7.5 Q 27.5 6.5 28.5 7.5 T 30.5 7.5 T 32.5 7.5" fill="none" stroke="#22c55e"
+                  stroke-width="0.4" class="flow-line" />
+                <!-- Blinking LED (Green) -->
+                <circle cx="26" cy="11.5" r="0.6" fill="#22c55e" class="live-dot" />
+                <!-- Red LED -->
+                <circle cx="28" cy="11.5" r="0.6" fill="#eab308" />
+                <!-- Handle -->
+                <line x1="33" y1="8" x2="33" y2="10" stroke="#334155" stroke-width="0.5" />
+
+                <!-- Transformer Tank -->
+                <rect x="39" y="7" width="15" height="9.5" fill="url(#gThemeMetal)" stroke="#1e293b"
+                  stroke-width="0.4" />
+                <!-- Cooling Fins -->
+                <line x1="42" y1="8" x2="42" y2="15.5" stroke="#1e293b" stroke-width="0.4" />
+                <line x1="45" y1="8" x2="45" y2="15.5" stroke="#1e293b" stroke-width="0.4" />
+                <line x1="48" y1="8" x2="48" y2="15.5" stroke="#1e293b" stroke-width="0.4" />
+                <line x1="51" y1="8" x2="51" y2="15.5" stroke="#1e293b" stroke-width="0.4" />
+                <!-- Bushings -->
+                <rect x="41" y="5.5" width="1.5" height="1.5" fill="#78350f" rx="0.2" />
+                <rect x="51" y="5.5" width="1.5" height="1.5" fill="#78350f" rx="0.2" />
+                <!-- Arced cable VSD-Transformer -->
+                <path d="M 33 9 Q 36 6 39 8" fill="none" stroke="#ea580c" stroke-width="0.6" />
+                <!-- Power Cable connection running underground -->
+                <path d="M 46 16.5 C 46 22, 91 22, 91 18" fill="none" stroke="#ea580c" stroke-width="0.8" />
+                <!-- Label -->
+                <text x="38" y="19.5" fill="var(--ink-500)" font-size="3.5" font-weight="800" text-anchor="middle"
+                  font-family="DM Sans, sans-serif">SUPERFICIE</text>
+              </g>
+
+              <!-- Wellhead Assembly (Cabezal Realista) -->
+              <g id="svg-wellhead">
+                <!-- Outer casing flange flange -->
+                <rect x="58" y="14" width="44" height="4" rx="0.5" fill="url(#gMetal3D)" stroke="#0f172a"
+                  stroke-width="0.5" />
+                <!-- Bolts on flange -->
+                <circle cx="61" cy="16" r="0.6" fill="#1e293b" />
+                <circle cx="65" cy="16" r="0.6" fill="#1e293b" />
+                <circle cx="95" cy="16" r="0.6" fill="#1e293b" />
+                <circle cx="99" cy="16" r="0.6" fill="#1e293b" />
+                <!-- Tubing head adapter -->
+                <polygon points="62,14 66,6 94,6 98,14" fill="url(#gMetal3D)" stroke="#0f172a" stroke-width="0.5" />
+                <!-- Upper master block -->
+                <rect x="72" y="2" width="16" height="4" rx="0.5" fill="url(#gMetal3D)" stroke="#0f172a"
+                  stroke-width="0.5" />
+                <!-- Valve handwheel top -->
+                <circle cx="80" cy="1" r="2.5" fill="none" stroke="#dc2626" stroke-width="0.8" />
+                <line x1="80" y1="-1" x2="80" y2="3" stroke="#dc2626" stroke-width="0.5" />
+                <!-- Lateral flow outlet line -->
+                <rect x="88" y="7" width="22" height="3" fill="url(#gMetal3D)" stroke="#0f172a" stroke-width="0.4" />
+                <rect x="110" y="5" width="2" height="7" rx="0.3" fill="url(#gMetal3D)" stroke="#0f172a"
+                  stroke-width="0.4" />
+                <circle cx="103" cy="8.5" r="2.5" fill="none" stroke="#2563eb" stroke-width="0.7" />
+                <!-- Cabezal Label -->
+                <text x="80" y="20" fill="var(--ink-500)" font-size="4" font-weight="800" text-anchor="middle"
+                  font-family="DM Sans, sans-serif" letter-spacing="0.05em">CABEZAL</text>
+              </g>
+
+              <!-- Central Production Tubing (Tubería de Producción) -->
+              <rect x="76.5" y="18" width="7" height="34" fill="url(#gMetal3D)" stroke="#1e293b" stroke-width="0.3" />
+              <!-- Threaded Couplings (Uniones de Tubería) -->
+              <g>
+                <rect x="75.5" y="28" width="9" height="5" rx="0.5" fill="url(#gMetal3D)" stroke="#0f172a"
+                  stroke-width="0.4" />
+                <line x1="75.5" y1="30.5" x2="84.5" y2="30.5" stroke="#0f172a" stroke-width="0.4" />
+              </g>
+              <text x="38" y="38" fill="#5a6170" font-size="4.5" font-weight="600" text-anchor="end"
+                font-family="DM Sans, sans-serif">TUBING</text>
+              <line x1="40" y1="37" x2="75" y2="37" stroke="#c8ccd4" stroke-width="0.5" stroke-dasharray="2 2" />
+
+              <!-- ============================================== -->
+              <!-- Y-TOOL SYSTEM (Visible dynamically when hasY)  -->
+              <!-- ============================================== -->
+              <g id="svg-ytool-g" style="opacity:0; transition:opacity .3s">
+                <!-- Y-Tool Body (Forged offset Y-manifold) -->
+                <path
+                  d="M 76 52 L 84 52 L 87.5 56 L 88.5 70 L 77.5 70 L 77.5 62 Q 74.75 58 72 62 L 72 70 L 67.5 70 L 68.5 56 Z"
+                  fill="url(#gMetal3D)" stroke="#0f172a" stroke-width="0.5" />
+                <circle cx="78" cy="62" r="1.5" fill="#0f172a" opacity="0.3" />
+                <!-- Bolt flanges at bottom of Y-tool legs -->
+                <rect x="66" y="68" width="7" height="2" rx="0.3" fill="url(#gMetal3D)" stroke="#0f172a"
+                  stroke-width="0.3" />
+                <rect x="76.5" y="68" width="13.5" height="2" rx="0.3" fill="url(#gMetal3D)" stroke="#0f172a"
+                  stroke-width="0.3" />
+                <text x="78" y="59" fill="#0f172a" font-size="4" font-weight="800" text-anchor="middle"
+                  font-family="DM Sans, sans-serif" letter-spacing="-0.02em">Y-TOOL</text>
+
+                <!-- Parallel Bypass Tubing String (Sarta de Bypass) -->
+                <!-- Bypass Pipe straight down left side of wellbore from Y-Tool bottom leg (y=70 to y=345) -->
+                <rect x="67.5" y="70" width="4.5" height="275" fill="url(#gMetal3D)" stroke="#1e293b"
+                  stroke-width="0.3" />
+                <!-- Bypass joints/couplings -->
+                <rect x="66.5" y="150" width="6.5" height="4" rx="0.3" fill="url(#gMetal3D)" stroke="#0f172a"
+                  stroke-width="0.3" />
+                <rect x="66.5" y="240" width="6.5" height="4" rx="0.3" fill="url(#gMetal3D)" stroke="#0f172a"
+                  stroke-width="0.3" />
+                <rect x="66.5" y="310" width="6.5" height="4" rx="0.3" fill="url(#gMetal3D)" stroke="#0f172a"
+                  stroke-width="0.3" />
+                <!-- Guide Shoe (Zapato Guía Angulado) at bottom of bypass -->
+                <polygon points="67.5,345 72,345 74,352 67.5,352" fill="url(#gGold)" stroke="#78350f"
+                  stroke-width="0.4" />
+
+                <!-- Clamps holding bypass string to ESP body -->
+                <rect x="72" y="110" width="6" height="1" fill="#1e293b" />
+                <rect x="72" y="190" width="6" height="1" fill="#1e293b" />
+                <rect x="72" y="280" width="6" height="1" fill="#1e293b" />
+              </g>
+
+              <!-- Standard Concentric Swage Joint (Visible when Y-Tool is disabled) -->
+              <g id="svg-normal-joint" style="transition:opacity .3s">
+                <path d="M 76.5 52 L 83.5 52 L 89 70 L 77 70 Z" fill="url(#gMetal3D)" stroke="#1e293b"
+                  stroke-width="0.4" />
+                <line x1="76.75" y1="60" x2="83" y2="60" stroke="#475569" stroke-width="0.4" />
+              </g>
+
+              <!-- Packer / Mechanical Lock (Empacadura) -->
+              <g opacity="0.92">
+                <!-- Elastomer packer elements (seals casing annulus space) -->
+                <!-- Left side -->
+                <rect x="64.5" y="44" width="11" height="8" fill="#1e293b" rx="0.5" />
+                <line x1="64.5" y1="48" x2="75.5" y2="48" stroke="#000" stroke-width="0.8" />
+                <!-- Right side -->
+                <rect x="84.5" y="44" width="11" height="8" fill="#1e293b" rx="0.5" />
+                <line x1="84.5" y1="48" x2="95.5" y2="48" stroke="#000" stroke-width="0.8" />
+                <!-- Metallic slip teeth (cuñas mecánicas de agarre) -->
+                <path d="M 64.5 42 L 68 44 M 64.5 43 L 68 45" stroke="#475569" stroke-width="0.6" />
+                <path d="M 95.5 42 L 92 44 M 95.5 43 L 92 45" stroke="#475569" stroke-width="0.6" />
+              </g>
+
+              <!-- Power Cable (Cable de Potencia) -->
+              <g class="well-svg-part" onclick="hRow('Cable')" title="Cable de Potencia (Hacer clic para resaltar)">
+                <!-- Cable line running on the right side -->
+                <!-- Copper Core Line -->
+                <path d="M 91 18 L 91 258" fill="none" stroke="#ea580c" stroke-width="1.8" />
+                <!-- Outer Armor Wrap (Dashed steel line over copper) -->
+                <path d="M 91 18 L 91 258" fill="none" stroke="#475569" stroke-width="1.8" stroke-dasharray="3 1" />
+                <text x="96" y="30" fill="#ea580c" font-size="4" font-weight="800"
+                  font-family="DM Sans, sans-serif">CABLE</text>
+
+                <!-- Cable Protectors / Clamps on Tubing (Midjoint and Overcoupling) -->
+                <rect x="75" y="29" width="18" height="2" rx="0.2" fill="url(#gMetal3D)" stroke="#111"
+                  stroke-width="0.3" opacity="0.9" />
+                <rect x="76" y="49" width="17" height="2" rx="0.2" fill="url(#gMetal3D)" stroke="#111"
+                  stroke-width="0.3" opacity="0.9" />
+              </g>
+
+              <!-- ============================================== -->
+              <!-- ESP PUMP STRING (Offset slightly to x = 83)   -->
+              <!-- ============================================== -->
+
+              <!-- Discharge Head (Cabezal de Descarga) -->
+              <g>
+                <path d="M 77 70 L 89 70 L 87.5 84 L 78.5 84 Z" fill="url(#gMetal3D)" stroke="#1e293b"
+                  stroke-width="0.4" />
+                <circle cx="83" cy="77" r="1.5" fill="#0f172a" />
+                <text x="83" y="75" fill="#fff" font-size="3" font-weight="700" text-anchor="middle"
+                  font-family="DM Sans, sans-serif">DISCH</text>
+              </g>
+
+              <!-- Pump Stage 1 -->
+              <g class="well-svg-part" onclick="hRow('Bomba 1')" title="Bomba ESP 1 (Hacer clic para resaltar)">
+                <!-- Top Flange -->
+                <rect x="76" y="84" width="14" height="2.5" rx="0.3" fill="url(#gMetal3D)" stroke="#111"
+                  stroke-width="0.4" />
+                <!-- Pump Cylinder Body (chrome steel) -->
+                <rect x="77" y="86.5" width="12" height="35.5" fill="url(#gThemeMetal)" stroke="var(--petrol-900)"
+                  stroke-width="0.5" />
+                <!-- Internal impeller stage markings -->
+                <line x1="77" y1="91" x2="89" y2="91" stroke="rgba(255,255,255,0.3)" stroke-width="0.4" />
+                <line x1="77" y1="96" x2="89" y2="96" stroke="rgba(255,255,255,0.3)" stroke-width="0.4" />
+                <line x1="77" y1="101" x2="89" y2="101" stroke="rgba(255,255,255,0.3)" stroke-width="0.4" />
+                <line x1="77" y1="106" x2="89" y2="106" stroke="rgba(255,255,255,0.3)" stroke-width="0.4" />
+                <line x1="77" y1="111" x2="89" y2="111" stroke="rgba(255,255,255,0.3)" stroke-width="0.4" />
+                <line x1="77" y1="116" x2="89" y2="116" stroke="rgba(255,255,255,0.3)" stroke-width="0.4" />
+                <!-- Center pump shaft -->
+                <line x1="83" y1="86.5" x2="83" y2="122" stroke="rgba(255,255,255,0.2)" stroke-width="0.7" />
+                <!-- Bottom Flange -->
+                <rect x="76" y="122" width="14" height="2.5" rx="0.3" fill="url(#gMetal3D)" stroke="#111"
+                  stroke-width="0.4" />
+                <!-- Rotated text for component name -->
+                <text x="83.5" y="104.5" fill="#fff" font-size="4.5" font-weight="700" text-anchor="middle"
+                  transform="rotate(-90,83.5,104.5)" font-family="DM Sans, sans-serif" opacity="0.95"
+                  letter-spacing="0.05em">BOMBA 1</text>
+              </g>
+              <text x="38" y="105" fill="#5a6170" font-size="4.5" font-weight="600" text-anchor="end"
+                font-family="DM Sans, sans-serif">Bomba 1</text>
+              <line x1="40" y1="104" x2="76" y2="104" stroke="#c8ccd4" stroke-width="0.5" stroke-dasharray="2 2" />
+
+              <!-- Pump Stage 2 (Dynamic opacity based on JS) -->
+              <g id="svg-p2" class="well-svg-part" onclick="hRow('Bomba 2')"
+                title="Bomba ESP 2 (Hacer clic para resaltar)" style="opacity:0.3; transition:opacity .3s">
+                <!-- Top Flange -->
+                <rect x="76" y="126" width="14" height="2.5" rx="0.3" fill="url(#gMetal3D)" stroke="#111"
+                  stroke-width="0.4" />
+                <!-- Pump Cylinder Body -->
+                <rect x="77" y="128.5" width="12" height="35.5" fill="url(#gThemeMetal2)" stroke="var(--petrol-900)"
+                  stroke-width="0.5" />
+                <!-- Stage lines -->
+                <line x1="77" y1="133" x2="89" y2="133" stroke="rgba(255,255,255,0.3)" stroke-width="0.4" />
+                <line x1="77" y1="138" x2="89" y2="138" stroke="rgba(255,255,255,0.3)" stroke-width="0.4" />
+                <line x1="77" y1="143" x2="89" y2="143" stroke="rgba(255,255,255,0.3)" stroke-width="0.4" />
+                <line x1="77" y1="148" x2="89" y2="148" stroke="rgba(255,255,255,0.3)" stroke-width="0.4" />
+                <line x1="77" y1="153" x2="89" y2="153" stroke="rgba(255,255,255,0.3)" stroke-width="0.4" />
+                <line x1="77" y1="158" x2="89" y2="158" stroke="rgba(255,255,255,0.3)" stroke-width="0.4" />
+                <!-- Center pump shaft -->
+                <line x1="83" y1="128.5" x2="83" y2="164" stroke="rgba(255,255,255,0.2)" stroke-width="0.7" />
+                <!-- Bottom Flange -->
+                <rect x="76" y="164" width="14" height="2.5" rx="0.3" fill="url(#gMetal3D)" stroke="#111"
+                  stroke-width="0.4" />
+                <text x="83.5" y="146.5" fill="#fff" font-size="4.5" font-weight="700" text-anchor="middle"
+                  transform="rotate(-90,83.5,146.5)" font-family="DM Sans, sans-serif" opacity="0.9"
+                  letter-spacing="0.05em">BOMBA 2</text>
+              </g>
+
+              <!-- Pump Stage 3 (Dynamic opacity based on JS) -->
+              <g id="svg-p3" class="well-svg-part" onclick="hRow('Bomba 3')"
+                title="Bomba ESP 3 (Hacer clic para resaltar)" style="opacity:0.3; transition:opacity .3s">
+                <!-- Top Flange -->
+                <rect x="76" y="168" width="14" height="2.5" rx="0.3" fill="url(#gMetal3D)" stroke="#111"
+                  stroke-width="0.4" />
+                <!-- Pump Cylinder Body -->
+                <rect x="77" y="170.5" width="12" height="27.5" fill="url(#gThemeMetal)" stroke="var(--petrol-900)"
+                  stroke-width="0.5" />
+                <!-- Stage lines -->
+                <line x1="77" y1="175" x2="89" y2="175" stroke="rgba(255,255,255,0.3)" stroke-width="0.4" />
+                <line x1="77" y1="180" x2="89" y2="180" stroke="rgba(255,255,255,0.3)" stroke-width="0.4" />
+                <line x1="77" y1="185" x2="89" y2="185" stroke="rgba(255,255,255,0.3)" stroke-width="0.4" />
+                <line x1="77" y1="190" x2="89" y2="190" stroke="rgba(255,255,255,0.3)" stroke-width="0.4" />
+                <!-- Center pump shaft -->
+                <line x1="83" y1="170.5" x2="83" y2="198" stroke="rgba(255,255,255,0.2)" stroke-width="0.7" />
+                <!-- Bottom Flange -->
+                <rect x="76" y="198" width="14" height="2.5" rx="0.3" fill="url(#gMetal3D)" stroke="#111"
+                  stroke-width="0.4" />
+                <text x="83.5" y="184.5" fill="#fff" font-size="4.5" font-weight="700" text-anchor="middle"
+                  transform="rotate(-90,83.5,184.5)" font-family="DM Sans, sans-serif" opacity="0.95"
+                  letter-spacing="0.05em">BOMBA 3</text>
+              </g>
+
+              <!-- Suction Intake / Admisión -->
+              <g class="well-svg-part" onclick="hRow('Admision')"
+                title="Admisión / Separador (Hacer clic para resaltar)">
+                <!-- Top coupling flange -->
+                <rect x="76" y="202" width="14" height="2.5" rx="0.3" fill="url(#gMetal3D)" stroke="#111"
+                  stroke-width="0.4" />
+                <!-- Underlay backing -->
+                <rect x="77.5" y="204.5" width="11" height="16.5" fill="var(--petrol-100)" />
+                <!-- Screen Pattern mesh overlay -->
+                <rect x="77.5" y="204.5" width="11" height="16.5" fill="url(#pScreen)" stroke="var(--petrol-700)"
+                  stroke-width="0.5" />
+                <!-- Intake bottom coupling -->
+                <rect x="76" y="221" width="14" height="2.5" rx="0.3" fill="url(#gMetal3D)" stroke="#111"
+                  stroke-width="0.4" />
+
+                <!-- Dynamic Intake Fluid Inflow Arrows -->
+                <path d="M 67 212.5 L 75.5 212.5" fill="none" stroke="var(--petrol-600)" stroke-width="0.8"
+                  marker-end="url(#arrow)" />
+                <path d="M 99 212.5 L 90.5 212.5" fill="none" stroke="var(--petrol-600)" stroke-width="0.8"
+                  marker-end="url(#arrow)" />
+
+                <text x="83" y="214.5" fill="var(--petrol-900)" font-size="3" font-weight="900" text-anchor="middle"
+                  font-family="DM Sans, sans-serif" opacity="0.85">INTAKE</text>
+              </g>
+              <text x="38" y="214" fill="#5a6170" font-size="4.5" font-weight="600" text-anchor="end"
+                font-family="DM Sans, sans-serif">Admisión</text>
+              <line x1="40" y1="213" x2="76" y2="213" stroke="#c8ccd4" stroke-width="0.5" stroke-dasharray="2 2" />
+
+              <!-- Protector / Seal Chamber (Sello Tándem) -->
+              <g class="well-svg-part" onclick="hRow('Protector')"
+                title="Protector / Sello Tándem (Hacer clic para resaltar)">
+                <!-- Top Flange -->
+                <rect x="76" y="224.5" width="14" height="2.5" rx="0.3" fill="url(#gMetal3D)" stroke="#111"
+                  stroke-width="0.4" />
+                <!-- Protector Cylinder Body (metal) -->
+                <rect x="77" y="227" width="12" height="26.5" fill="url(#gMetal3D)" stroke="#3e434d"
+                  stroke-width="0.5" />
+
+                <!-- Detailed internal chamber bellows (realistic cutaway style) -->
+                <!-- Elastomer bags representation -->
+                <ellipse cx="83" cy="235" rx="4" ry="2.5" fill="#1e293b" opacity="0.8" stroke="#94a3b8"
+                  stroke-width="0.4" />
+                <ellipse cx="83" cy="245" rx="4" ry="2.5" fill="#1e293b" opacity="0.8" stroke="#94a3b8"
+                  stroke-width="0.4" />
+                <!-- Central shaft -->
+                <line x1="83" y1="227" x2="83" y2="253.5" stroke="#111" stroke-width="0.8" />
+
+                <!-- Bottom Flange -->
+                <rect x="76" y="253.5" width="14" height="2.5" rx="0.3" fill="url(#gMetal3D)" stroke="#111"
+                  stroke-width="0.4" />
+                <text x="83.5" y="240.5" fill="#f8fafc" font-size="4" font-weight="700" text-anchor="middle"
+                  transform="rotate(-90,83.5,240.5)" font-family="DM Sans, sans-serif" opacity="0.9"
+                  letter-spacing="0.05em">SEAL</text>
+              </g>
+
+              <!-- Heavy Duty Electric Motor -->
+              <g class="well-svg-part" onclick="hRow('Motor')" title="Motor Eléctrico (Hacer clic para resaltar)">
+                <!-- Top Flange -->
+                <rect x="75" y="256" width="16" height="4.5" rx="0.4" fill="url(#gMetal3D)" stroke="#111"
+                  stroke-width="0.5" />
+
+                <!-- Realistic electrical connection plug (Pothead) -->
+                <path d="M 87.5 258 L 92.5 258 L 93.5 264.5 L 87.5 264.5 Z" fill="#0f172a" stroke="#000"
+                  stroke-width="0.4" />
+                <circle cx="90.5" cy="261.5" r="0.5" fill="#fbbf24" /> <!-- Connector brass bolt -->
+
+                <!-- Motor Cylinder (widened slightly for heavy power) -->
+                <rect x="76" y="260.5" width="14" height="60.5" fill="url(#gMotorMetal)" stroke="var(--petrol-900)"
+                  stroke-width="0.8" />
+
+                <!-- Cooling fins details (vertical highlighting ribs) -->
+                <line x1="79.5" y1="262.5" x2="79.5" y2="318.5" stroke="rgba(255,255,255,0.3)" stroke-width="0.5" />
+                <line x1="83" y1="262.5" x2="83" y2="318.5" stroke="rgba(255,255,255,0.4)" stroke-width="0.5" />
+                <line x1="86.5" y1="262.5" x2="86.5" y2="318.5" stroke="rgba(255,255,255,0.3)" stroke-width="0.5" />
+
+                <!-- Fin caps details -->
+                <rect x="75" y="321" width="16" height="4.5" rx="0.4" fill="url(#gMetal3D)" stroke="#111"
+                  stroke-width="0.5" />
+                <text x="83.5" y="291.5" fill="#fff" font-size="5" font-weight="800" text-anchor="middle"
+                  transform="rotate(-90,83.5,291.5)" font-family="DM Sans, sans-serif"
+                  letter-spacing="0.08em">MOTOR</text>
+              </g>
+              <text x="38" y="291" fill="#5a6170" font-size="4.5" font-weight="600" text-anchor="end"
+                font-family="DM Sans, sans-serif">Motor</text>
+              <line x1="40" y1="290" x2="75" y2="290" stroke="#c8ccd4" stroke-width="0.5" stroke-dasharray="2 2" />
+
+              <!-- Bottom Hole Sensor (Sensor de Fondo) -->
+              <g class="well-svg-part" onclick="hRow('Sensor')" title="Sensor de Fondo (Hacer clic para resaltar)">
+                <!-- Transition coupler -->
+                <path d="M 77 325.5 L 89 325.5 L 87 338 L 79 338 Z" fill="url(#gMetal3D)" stroke="#1e293b"
+                  stroke-width="0.4" />
+                <!-- Sensor probe head -->
+                <path d="M 79 338 L 87 338 L 83 346 Z" fill="url(#gGold)" stroke="#78350f" stroke-width="0.4" />
+                <!-- Pulsing Active LED Indicator Light -->
+                <circle cx="83" cy="333" r="2.5" fill="var(--petrol-700)" />
+                <circle cx="83" cy="333" r="1.5" fill="var(--petrol-300)" class="svg-pulse" />
+                <text x="83" y="352" fill="var(--ink-500)" font-size="4.5" font-weight="800" text-anchor="middle"
+                  font-family="DM Sans, sans-serif" letter-spacing="0.05em">SENSOR</text>
+              </g>
+
+              <!-- Bow-Spring Centralizer (Centralizador de Cola) -->
+              <g class="well-svg-part" onclick="hRow('Centralizador')"
+                title="Centralizador de Cola (Hacer clic para resaltar)">
+                <!-- Centralizer collar sleeve -->
+                <rect x="81.5" y="347" width="3" height="12" fill="url(#gMetal3D)" stroke="#0f172a"
+                  stroke-width="0.4" />
+                <!-- Bow springs extending outwards to touch casing walls (64 and 96) -->
+                <!-- Left spring -->
+                <path d="M 81.5 348 Q 64.5 353 81.5 358" fill="none" stroke="#475569" stroke-width="0.8" />
+                <!-- Right spring -->
+                <path d="M 84.5 348 Q 95.5 353 84.5 358" fill="none" stroke="#475569" stroke-width="0.8" />
+                <!-- Bolt markers -->
+                <circle cx="83" cy="348" r="0.5" fill="#111" />
+                <circle cx="83" cy="358" r="0.5" fill="#111" />
+                <text x="98" y="355" fill="var(--ink-500)" font-size="4" font-weight="700"
+                  font-family="DM Sans, sans-serif">CENTRALIZADOR</text>
+              </g>
+
+              <!-- Dynamic Interactive Pump count badge -->
+              <g id="pump-badge" transform="translate(110,95)">
+                <rect x="-1" y="-1" width="32" height="14" rx="3" fill="var(--petrol-50)" stroke="var(--petrol-300)"
+                  stroke-width="0.6" shadow="0 1px 3px rgba(0,0,0,0.1)" />
+                <text id="pump-badge-txt" x="15" y="8.5" fill="var(--petrol-700)" font-size="5.5" font-weight="700"
+                  text-anchor="middle" font-family="DM Sans, sans-serif">1 Bomba</text>
+              </g>
+            </svg>
+          </div>
+          <p class="text-[9px] text-center mt-2" style="color:var(--ink-400)">Clic en componente → resalta fila en tabla
+          </p>
+        </div>
+      </div>
+
+      <!-- COLUMNA DERECHA: Ficha + Gráficos + Trayectoria -->
+      <div class="lg:col-span-9 xl:col-span-10 flex flex-col justify-between space-y-3">
+
+        <!-- Ficha Técnica + Gráficos (4 columnas) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 items-stretch">
+
+          <!-- Ficha -->
+          <div class="bg-white border border-gray-200 rounded-xl p-4 flex flex-col justify-between">
+            <p class="section-title mb-3">Ficha Técnica</p>
+            <div class="space-y-2 flex-1 flex flex-col justify-center">
+              <div class="flex justify-between items-start py-2 border-b border-gray-100">
+                <span class="text-[11px] font-500" style="color:var(--ink-500)">Material Sarta</span>
+                <span id="ft-material" class="mono text-[11px] font-600 text-right"
+                  style="color:var(--ink-800)">—</span>
+              </div>
+              <div class="flex justify-between items-start py-2 border-b border-gray-100">
+                <span class="text-[11px] font-500" style="color:var(--ink-500)">Estabilización</span>
+                <span id="ft-estab" class="mono text-[11px] font-600" style="color:var(--ink-800)">—</span>
+              </div>
+              <div class="flex justify-between items-start py-2 border-b border-gray-100">
+                <span class="text-[11px] font-500" style="color:var(--ink-500)">SLIM / Y-Tool</span>
+                <span id="ft-ytool" class="text-[11px] font-600" style="color:var(--ink-800)">—</span>
+              </div>
+              <div class="flex justify-between items-start py-2 border-b border-gray-100">
+                <span class="text-[11px] font-500" style="color:var(--ink-500)">Profundidad cable</span>
+                <span id="ft-prof" class="mono text-[11px] font-600" style="color:var(--ink-800)">—</span>
+              </div>
+              <div class="flex justify-between items-start py-2 border-b border-gray-100">
+                <span class="text-[11px] font-500" style="color:var(--ink-500)">Cable con Capilar</span>
+                <span id="ft-capilar" class="text-[11px] font-600" style="color:var(--ink-800)">—</span>
+              </div>
+              <div class="flex justify-between items-start py-2 border-b border-gray-100">
+                <span class="text-[11px] font-500" style="color:var(--ink-500)">Variador</span>
+                <span id="ft-variador" class="mono text-[11px] font-600" style="color:var(--ink-800)">—</span>
+              </div>
+              <div class="py-1.5 border-b border-gray-100">
+                <span class="text-[11px] font-500 block mb-1" style="color:var(--ink-500)">Bomba</span>
+                <span id="ft-bomba" class="text-[11px] font-500 leading-snug block"
+                  style="color:var(--ink-700)">—</span>
+              </div>
+              <div class="py-1.5 border-b border-gray-100">
+                <span class="text-[11px] font-500 block mb-1" style="color:var(--ink-500)">Motor</span>
+                <span id="ft-motor" class="text-[11px] font-500 leading-snug block"
+                  style="color:var(--ink-700)">—</span>
+              </div>
+              <div class="py-2">
+                <span class="text-[11px] font-500 block mb-1" style="color:var(--ink-500)">Cable de Potencia</span>
+                <span id="ft-cable" class="text-[11px] font-500 leading-snug block"
+                  style="color:var(--ink-700)">—</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Segmentos CAPEX -->
+          <div class="bg-white border border-gray-200 rounded-xl p-4 flex flex-col justify-between">
+            <p class="section-title mb-3">Segmentos CAPEX</p>
+            <div class="chart-wrap">
+              <canvas id="chartSegmentos"></canvas>
+            </div>
+            <div id="segmentos-legend" class="mt-3 space-y-1"></div>
+          </div>
+
+          <!-- Donut cost breakdown -->
+          <div class="bg-white border border-gray-200 rounded-xl p-4 flex flex-col justify-between">
+            <p class="section-title mb-3">Distribución CAPEX</p>
+            <div class="chart-wrap">
+              <canvas id="chartDonut"></canvas>
+            </div>
+            <div id="donut-legend" class="mt-3 space-y-1"></div>
+          </div>
+
+          <!-- Bar unit costs -->
+          <div class="bg-white border border-gray-200 rounded-xl p-4 flex flex-col justify-between h-full">
+            <p class="section-title mb-3">Costo Total por Componente</p>
+            <div class="chart-wrap-flex">
+              <canvas id="chartBar"></canvas>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Fila Inferior (Campo + Trayectoria) -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 items-stretch">
+
+          <!-- Campo comparison -->
+          <div class="bg-white border border-gray-200 rounded-xl p-4 flex flex-col lg:col-span-4 justify-between">
+            <p class="section-title mb-3">CAPEX por Pozo Tipo (Campo)</p>
+            <div class="chart-wrap" style="height: 125px;">
+              <canvas id="chartCampo"></canvas>
+            </div>
+          </div>
+
+          <!-- Trayectoria visual card -->
+          <div class="bg-white border border-gray-200 rounded-xl p-4 lg:col-span-8 flex flex-col justify-between">
+            <div class="flex items-center justify-between mb-3">
+              <p class="section-title">Trayectoria de Pozo</p>
+              <div class="flex gap-3 text-[10px] font-600" style="color:var(--ink-400)">
+                <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full inline-block"
+                    style="background:var(--petrol-600)"></span>Tubería</span>
+                <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full inline-block"
+                    style="background:var(--petrol-400)"></span>ESP</span>
+                <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full inline-block"
+                    style="background:var(--ink-300)"></span>Arena</span>
+              </div>
+            </div>
+            <div class="flex justify-center">
+              <svg id="traj-svg" viewBox="0 0 500 90" class="w-full">
+                <rect x="0" y="0" width="500" height="90" fill="#f8f9fb" rx="8" />
+                <!-- Grid lines -->
+                <line x1="0" y1="25" x2="500" y2="25" stroke="#e5e7eb" stroke-width="0.5" />
+                <line x1="0" y1="50" x2="500" y2="50" stroke="#e5e7eb" stroke-width="0.5" />
+                <line x1="0" y1="75" x2="500" y2="75" stroke="#e5e7eb" stroke-width="0.5" />
+                <!-- Surface -->
+                <line x1="0" y1="10" x2="500" y2="10" stroke="#64748b" stroke-width="1.5" />
+                <text x="490" y="8" fill="#64748b" font-size="7" font-weight="700" text-anchor="end"
+                  font-family="DM Sans, sans-serif">SUPERFICIE</text>
+                <!-- Rig symbol -->
+                <path d="M 60 10 L 70 -2 L 80 10 Z" fill="none" stroke="#475569" stroke-width="1.5" />
+                <rect x="64" y="6" width="12" height="4" fill="#475569" />
+                <!-- Wellbore outer -->
+                <path id="traj-casing" d="M 70 10 L 70 80" fill="none" stroke="#94a3b8" stroke-width="10"
+                  stroke-linecap="round" />
+                <!-- Wellbore inner -->
+                <path id="traj-inner" d="M 70 10 L 70 77" fill="none" stroke="#f1f5f9" stroke-width="6"
+                  stroke-linecap="round" />
+                <!-- Tubing -->
+                <path id="traj-tubing" d="M 70 10 L 70 52" fill="none" stroke="var(--petrol-600)" stroke-width="2"
+                  stroke-linecap="round" />
+                <!-- ESP package -->
+                <g id="traj-esp">
+                  <rect x="-3.5" y="0" width="7" height="22" rx="1" fill="var(--petrol-400)" />
+                  <circle cx="0" cy="24" r="2.5" fill="var(--petrol-700)" class="live-dot" />
+                </g>
+                <!-- Sand layer -->
+                <rect id="traj-sand" x="0" y="76" width="500" height="14" fill="var(--petrol-100)" opacity=".4" />
+                <path id="traj-sand-line" d="M 0 76 L 500 76" fill="none" stroke="#7d8491" stroke-width="1.5"
+                  stroke-dasharray="8 4" />
+                <text x="490" y="86" fill="#3e434d" font-size="7" font-weight="700" text-anchor="end"
+                  font-family="DM Sans, sans-serif">ARENA PRODUCTIVA</text>
+                <!-- Labels -->
+                <text id="traj-depth-label" x="20" y="70" fill="#64748b" font-size="7" font-weight="600"
+                  font-family="DM Sans, sans-serif">0 ft</text>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ═══ GRID DE SIMULADOR Y DESCUENTOS ═══ -->
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-4 mt-3">
+
+      <!-- COLUMNA IZQUIERDA: Distribución de Costos CAPEX ESP -->
+      <section
+        class="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm flex flex-col justify-between">
+        <div class="flex items-center justify-between px-5 py-3.5 border-b border-gray-200">
+          <div>
+            <p class="text-sm font-700" style="color:var(--ink-900)">Distribución de Costos CAPEX ESP</p>
+            <p class="text-[11px] mt-0.5" style="color:var(--ink-400)">Edite cantidades o costos unitarios — el CAPEX se
+              recalcula en tiempo real</p>
+          </div>
+          <span id="sim-total-badge" class="mono text-sm font-700 rounded-lg px-3 py-1.5"
+            style="color:var(--petrol-800);background:var(--petrol-50);border:1px solid var(--petrol-200)">$0 USD</span>
+        </div>
+
+        <!-- SECCION: FONDO -->
+        <div class="border-b border-gray-200">
+          <button onclick="toggleSection('fondo')"
+            class="w-full flex items-center justify-between px-5 py-3 bg-gray-50/50 hover:bg-gray-100/50 transition-colors focus:outline-none">
+            <div class="flex items-center gap-2">
+              <svg id="chevron-fondo" class="w-3.5 h-3.5 text-gray-500 transition-transform duration-200 transform"
+                fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
+              </svg>
+              <span class="text-[11px] font-700 uppercase tracking-wider text-gray-700">Equipos de Fondo
+                (Downhole)</span>
+              <span class="tag tag-green ml-1" id="badge-count-fondo" style="font-size: 9px; padding: 2px 6px;">0
+                activos</span>
+            </div>
+            <span class="mono text-xs font-700" style="color:var(--petrol-700)" id="section-total-fondo">$0.00</span>
+          </button>
+          <div id="content-fondo" class="hidden overflow-x-auto">
+            <table class="w-full text-left">
+              <thead>
+                <tr class="bg-gray-50/70 border-b border-gray-200">
+                  <th class="px-5 py-2 text-[9px] font-700 text-gray-400 uppercase tracking-wider">Componente Fondo</th>
+                  <th class="px-5 py-2 text-[9px] font-700 text-gray-400 uppercase tracking-wider w-28 text-center">
+                    Cantidad</th>
+                  <th class="px-5 py-2 text-[9px] font-700 text-gray-400 uppercase tracking-wider w-12 text-center">Und
+                  </th>
+                  <th class="px-5 py-2 text-[9px] font-700 text-gray-400 uppercase tracking-wider w-36 text-right">V.
+                    Unitario USD</th>
+                  <th class="px-5 py-2 text-[9px] font-700 text-gray-400 uppercase tracking-wider w-36 text-right">V.
+                    Total USD</th>
+                </tr>
+              </thead>
+              <tbody id="sim-body-fondo" class="divide-y divide-gray-100"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- SECCION: SERVICIOS -->
+        <div class="border-b border-gray-200">
+          <button onclick="toggleSection('servicios')"
+            class="w-full flex items-center justify-between px-5 py-3 bg-gray-50/50 hover:bg-gray-100/50 transition-colors focus:outline-none">
+            <div class="flex items-center gap-2">
+              <svg id="chevron-servicios" class="w-3.5 h-3.5 text-gray-500 transition-transform duration-200 transform"
+                fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
+              </svg>
+              <span class="text-[11px] font-700 uppercase tracking-wider text-gray-700">Servicios de Pozo (Run &
+                Pull)</span>
+              <span class="tag tag-blue ml-1" id="badge-count-servicios" style="font-size: 9px; padding: 2px 6px;">0
+                activos</span>
+            </div>
+            <span class="mono text-xs font-700" style="color:var(--petrol-700)"
+              id="section-total-servicios">$0.00</span>
+          </button>
+          <div id="content-servicios" class="hidden overflow-x-auto">
+            <table class="w-full text-left">
+              <thead>
+                <tr class="bg-gray-50/70 border-b border-gray-200">
+                  <th class="px-5 py-2 text-[9px] font-700 text-gray-400 uppercase tracking-wider">Componente Servicios
+                  </th>
+                  <th class="px-5 py-2 text-[9px] font-700 text-gray-400 uppercase tracking-wider w-28 text-center">
+                    Cantidad</th>
+                  <th class="px-5 py-2 text-[9px] font-700 text-gray-400 uppercase tracking-wider w-12 text-center">Und
+                  </th>
+                  <th class="px-5 py-2 text-[9px] font-700 text-gray-400 uppercase tracking-wider w-36 text-right">V.
+                    Unitario USD</th>
+                  <th class="px-5 py-2 text-[9px] font-700 text-gray-400 uppercase tracking-wider w-36 text-right">V.
+                    Total USD</th>
+                </tr>
+              </thead>
+              <tbody id="sim-body-servicios" class="divide-y divide-gray-100"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- SECCION: SUPERFICIE -->
+        <div class="border-b border-gray-200 last:border-b-0">
+          <button onclick="toggleSection('superficie')"
+            class="w-full flex items-center justify-between px-5 py-3 bg-gray-50/50 hover:bg-gray-100/50 transition-colors focus:outline-none">
+            <div class="flex items-center gap-2">
+              <svg id="chevron-superficie" class="w-3.5 h-3.5 text-gray-500 transition-transform duration-200 transform"
+                fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
+              </svg>
+              <span class="text-[11px] font-700 uppercase tracking-wider text-gray-700">Equipos de Superficie (VSD
+                Package)</span>
+              <span class="tag tag-amber ml-1" id="badge-count-superficie" style="font-size: 9px; padding: 2px 6px;">0
+                activos</span>
+            </div>
+            <span class="mono text-xs font-700" style="color:var(--petrol-700)"
+              id="section-total-superficie">$0.00</span>
+          </button>
+          <div id="content-superficie" class="hidden overflow-x-auto">
+            <table class="w-full text-left">
+              <thead>
+                <tr class="bg-gray-50/70 border-b border-gray-200">
+                  <th class="px-5 py-2 text-[9px] font-700 text-gray-400 uppercase tracking-wider">Componente Superficie
+                  </th>
+                  <th class="px-5 py-2 text-[9px] font-700 text-gray-400 uppercase tracking-wider w-28 text-center">
+                    Cantidad</th>
+                  <th class="px-5 py-2 text-[9px] font-700 text-gray-400 uppercase tracking-wider w-12 text-center">Und
+                  </th>
+                  <th class="px-5 py-2 text-[9px] font-700 text-gray-400 uppercase tracking-wider w-36 text-right">V.
+                    Unitario USD</th>
+                  <th class="px-5 py-2 text-[9px] font-700 text-gray-400 uppercase tracking-wider w-36 text-right">V.
+                    Total USD</th>
+                </tr>
+              </thead>
+              <tbody id="sim-body-superficie" class="divide-y divide-gray-100"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- PIE DE PAGINA CON TOTAL GRAND -->
+        <div class="bg-gray-50/60 px-5 py-3.5 border-t border-gray-200 flex items-center justify-between">
+          <span class="text-[10px] font-700 text-gray-500 uppercase tracking-wider">Total CAPEX antes de IVA:</span>
+          <span id="sim-total-cell" class="mono text-base font-700" style="color:var(--petrol-700)">$0.00</span>
+        </div>
+      </section>
+
+      <!-- COLUMNA DERECHA: Posibles Descuentos ESP -->
+      <section
+        class="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm flex flex-col justify-between">
+        <div class="flex items-center justify-between px-5 py-3.5 border-b border-gray-200">
+          <div>
+            <p class="text-sm font-700" style="color:var(--ink-900)">Posibles Descuentos ESP</p>
+            <p class="text-[11px] mt-0.5" style="color:var(--ink-400)">Defina opciones de intercambio (Fondo) o reuso
+              (Cable) para calcular costos con descuento</p>
+          </div>
+          <div class="flex gap-2">
+            <span id="sim-disc-badge"
+              class="mono text-xs font-700 rounded-lg px-2.5 py-1 text-teal-850 bg-teal-50 border border-teal-200">$0
+              USD con Desc.</span>
+            <span id="sim-saving-badge"
+              class="mono text-xs font-700 rounded-lg px-2.5 py-1 text-emerald-800 bg-emerald-50 border border-emerald-200">$0
+              Ahorro</span>
+          </div>
+        </div>
+
+        <!-- SECCION: FONDO DESCUENTOS -->
+        <div class="border-b border-gray-200">
+          <button onclick="toggleSection('fondo')"
+            class="w-full flex items-center justify-between px-5 py-3 bg-gray-50/50 hover:bg-gray-100/50 transition-colors focus:outline-none">
+            <div class="flex items-center gap-2">
+              <svg id="chevron-desc-fondo" class="w-3.5 h-3.5 text-gray-500 transition-transform duration-200 transform"
+                fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
+              </svg>
+              <span class="text-[11px] font-700 uppercase tracking-wider text-gray-700">Equipos de Fondo (Con
+                Descuento)</span>
+              <span class="tag tag-green ml-1" id="badge-count-desc-fondo" style="font-size: 9px; padding: 2px 6px;">0
+                activos</span>
+            </div>
+            <span class="mono text-xs font-700 text-teal-700" id="section-total-desc-fondo">$0.00</span>
+          </button>
+          <div id="content-desc-fondo" class="hidden overflow-x-auto">
+            <table class="w-full text-left">
+              <thead>
+                <tr class="bg-gray-50/70 border-b border-gray-200">
+                  <th class="px-5 py-2 text-[9px] font-700 text-gray-400 uppercase tracking-wider">Componente Fondo</th>
+                  <th class="px-5 py-2 text-[9px] font-700 text-gray-400 uppercase tracking-wider w-36 text-center">
+                    Condición / Descuento</th>
+                  <th class="px-5 py-2 text-[9px] font-700 text-gray-400 uppercase tracking-wider w-12 text-center">%
+                    Desc</th>
+                  <th class="px-5 py-2 text-[9px] font-700 text-gray-400 uppercase tracking-wider w-32 text-right">V.
+                    Unit. Desc.</th>
+                  <th class="px-5 py-2 text-[9px] font-700 text-gray-400 uppercase tracking-wider w-32 text-right">V.
+                    Total Desc.</th>
+                </tr>
+              </thead>
+              <tbody id="sim-body-desc-fondo" class="divide-y divide-gray-100"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- SECCION: SERVICIOS DESCUENTOS -->
+        <div class="border-b border-gray-200">
+          <button onclick="toggleSection('servicios')"
+            class="w-full flex items-center justify-between px-5 py-3 bg-gray-50/50 hover:bg-gray-100/50 transition-colors focus:outline-none">
+            <div class="flex items-center gap-2">
+              <svg id="chevron-desc-servicios"
+                class="w-3.5 h-3.5 text-gray-500 transition-transform duration-200 transform" fill="none"
+                stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
+              </svg>
+              <span class="text-[11px] font-700 uppercase tracking-wider text-gray-700">Servicios ESP (Con
+                Descuento)</span>
+              <span class="tag tag-green ml-1" id="badge-count-desc-servicios"
+                style="font-size: 9px; padding: 2px 6px;">0 activos</span>
+            </div>
+            <span class="mono text-xs font-700 text-teal-700" id="section-total-desc-servicios">$0.00</span>
+          </button>
+          <div id="content-desc-servicios" class="hidden overflow-x-auto">
+            <table class="w-full text-left">
+              <thead>
+                <tr class="bg-gray-50/70 border-b border-gray-200">
+                  <th class="px-5 py-2 text-[9px] font-700 text-gray-400 uppercase tracking-wider">Servicio</th>
+                  <th class="px-5 py-2 text-[9px] font-700 text-gray-400 uppercase tracking-wider w-36 text-center">
+                    Condición / Descuento</th>
+                  <th class="px-5 py-2 text-[9px] font-700 text-gray-400 uppercase tracking-wider w-12 text-center">%
+                    Desc</th>
+                  <th class="px-5 py-2 text-[9px] font-700 text-gray-400 uppercase tracking-wider w-32 text-right">V.
+                    Unit. Desc.</th>
+                  <th class="px-5 py-2 text-[9px] font-700 text-gray-400 uppercase tracking-wider w-32 text-right">V.
+                    Total Desc.</th>
+                </tr>
+              </thead>
+              <tbody id="sim-body-desc-servicios" class="divide-y divide-gray-100"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- SECCION: SUPERFICIE DESCUENTOS -->
+        <div class="border-b border-gray-200 last:border-b-0">
+          <button onclick="toggleSection('superficie')"
+            class="w-full flex items-center justify-between px-5 py-3 bg-gray-50/50 hover:bg-gray-100/50 transition-colors focus:outline-none">
+            <div class="flex items-center gap-2">
+              <svg id="chevron-desc-superficie"
+                class="w-3.5 h-3.5 text-gray-500 transition-transform duration-200 transform" fill="none"
+                stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
+              </svg>
+              <span class="text-[11px] font-700 uppercase tracking-wider text-gray-700">Equipos de Superficie (Con
+                Descuento)</span>
+              <span class="tag tag-green ml-1" id="badge-count-desc-superficie"
+                style="font-size: 9px; padding: 2px 6px;">0 activos</span>
+            </div>
+            <span class="mono text-xs font-700 text-teal-700" id="section-total-desc-superficie">$0.00</span>
+          </button>
+          <div id="content-desc-superficie" class="hidden overflow-x-auto">
+            <table class="w-full text-left">
+              <thead>
+                <tr class="bg-gray-50/70 border-b border-gray-200">
+                  <th class="px-5 py-2 text-[9px] font-700 text-gray-400 uppercase tracking-wider">Componente Superficie
+                  </th>
+                  <th class="px-5 py-2 text-[9px] font-700 text-gray-400 uppercase tracking-wider w-36 text-center">
+                    Condición / Descuento</th>
+                  <th class="px-5 py-2 text-[9px] font-700 text-gray-400 uppercase tracking-wider w-12 text-center">%
+                    Desc</th>
+                  <th class="px-5 py-2 text-[9px] font-700 text-gray-400 uppercase tracking-wider w-32 text-right">V.
+                    Unit. Desc.</th>
+                  <th class="px-5 py-2 text-[9px] font-700 text-gray-400 uppercase tracking-wider w-32 text-right">V.
+                    Total Desc.</th>
+                </tr>
+              </thead>
+              <tbody id="sim-body-desc-superficie" class="divide-y divide-gray-100"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- PIE DE PAGINA CON TOTAL CON DESCUENTO GRAND -->
+        <div class="bg-gray-50/60 px-5 py-3.5 border-t border-gray-200 flex items-center justify-between">
+          <span class="text-[10px] font-700 text-gray-500 uppercase tracking-wider text-teal-850">Total con Descuento
+            antes de IVA:</span>
+          <div class="flex items-center gap-4">
+            <span id="sim-saving-cell" class="mono text-xs font-600 text-emerald-600">Ahorro: $0.00</span>
+            <span id="sim-disc-cell" class="mono text-base font-700 text-teal-850"
+              style="color:var(--petrol-700)">$0.00</span>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- ═══ SECCIÓN DE GARANTÍAS Y RUN LIFE ═══ -->
+    <section class="bg-white border border-gray-200 rounded-xl overflow-hidden mt-3 shadow-sm">
+      <button onclick="toggleGarantias()"
+        class="w-full flex items-center justify-between px-5 py-4 bg-gray-50/60 hover:bg-gray-100/50 transition-colors focus:outline-none">
+        <div class="flex items-center gap-3">
+          <div class="p-2 rounded-lg bg-teal-50 text-teal-700"
+            style="background:var(--petrol-50); color:var(--petrol-600)">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+          </div>
+          <div class="text-left">
+            <p class="text-sm font-700" style="color:var(--ink-900)">Garantías Contractuales y Run Life de Campos</p>
+            <p class="text-[11px] mt-0.5" style="color:var(--ink-400)">Haga clic para ver los plazos de falla, sanciones
+              asociadas y estadística de Run Life histórica</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-[10px] font-700 uppercase tracking-wider text-gray-400 bg-gray-100 px-2 py-1 rounded">Ver
+            detalles</span>
+          <svg id="chevron-garantias" class="w-4 h-4 text-gray-500 transition-transform duration-200 transform"
+            fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </button>
+
+      <div id="content-garantias" class="hidden border-t border-gray-200 p-5 bg-white">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+
+          <!-- COLUMNA IZQUIERDA: Cláusulas de Garantías -->
+          <div class="lg:col-span-6 flex flex-col justify-between space-y-4">
+            <div class="space-y-3">
+              <h3 class="text-xs font-700 uppercase tracking-wider text-gray-400 mb-2">Cláusulas de Fallas y Sanciones
+              </h3>
+
+              <!-- 1. Falla Infantil -->
+              <div class="p-3 rounded-lg flex gap-3" style="border:1px solid var(--petrol-200); background:var(--petrol-50);">
+                <div class="mt-0.5 flex-shrink-0" style="color:var(--petrol-500)">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <div>
+                  <h4 class="text-xs font-700" style="color:var(--petrol-800)">1. Falla Infantil (0 – 30 días)</h4>
+                  <p class="text-[11px] mt-1 leading-relaxed" style="color:var(--petrol-700)">
+                    <strong>Plazo:</strong> Menor o igual a 30 días desde el arranque del equipo de fondo.
+                  </p>
+                  <p class="text-[11px] mt-1 leading-relaxed font-500" style="color:var(--petrol-700)">
+                    <strong>Sanción (VENDEDOR):</strong> Debe entregar un equipo similar completo 100% gratis
+                    (incluyendo cable, servicios de pulling e instalación). El cable solo se excluye si la falla no fue
+                    eléctrica.
+                  </p>
+                </div>
+              </div>
+
+              <!-- 2. Falla Prematura -->
+              <div class="p-3 rounded-lg flex gap-3" style="border:1px solid var(--petrol-300); background:rgba(var(--petrol-100-rgb,13,148,136),0.08);">
+                <div class="mt-0.5 flex-shrink-0" style="color:var(--petrol-600)">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <div>
+                  <h4 class="text-xs font-700" style="color:var(--petrol-800)">2. Falla Prematura (31 – 90 días)</h4>
+                  <p class="text-[11px] mt-1 leading-relaxed" style="color:var(--petrol-700)">
+                    <strong>Plazo:</strong> Ocurre en el periodo de 31 a 90 días después del arranque.
+                  </p>
+                  <p class="text-[11px] mt-1 leading-relaxed font-500" style="color:var(--petrol-700)">
+                    <strong>Sanción (VENDEDOR):</strong> Debe reponer todo el equipo de fondo incluido el cable sin
+                    costo. Adicionalmente, el VENDEDOR debe pagar todos los gastos de personal, pruebas, herramientas y
+                    transporte necesarios para el cambio.
+                  </p>
+                </div>
+              </div>
+
+              <!-- 3. Fallas Repetitivas -->
+              <div class="p-3 rounded-lg flex gap-3" style="border:1px solid var(--petrol-400); background:rgba(var(--petrol-100-rgb,13,148,136),0.12);">
+                <div class="mt-0.5 flex-shrink-0" style="color:var(--petrol-700)">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H18.2" />
+                  </svg>
+                </div>
+                <div>
+                  <h4 class="text-xs font-700" style="color:var(--petrol-900)">3. Fallas Repetitivas</h4>
+                  <p class="text-[11px] mt-1 leading-relaxed" style="color:var(--petrol-700)">
+                    <strong>Plazo:</strong> Cuando ocurren dos fallas por la misma causa en menos de un (1) año
+                    calendario en cualquier campo.
+                  </p>
+                  <p class="text-[11px] mt-1 leading-relaxed font-500" style="color:var(--petrol-800)">
+                    <strong>Sanción (VENDEDOR):</strong><br>
+                    • <strong>En la 2ª falla:</strong> Además de la garantía, debe pagar una multa del 15% del valor del
+                    segundo equipo completo y poner un técnico especialista en calidad extra (gratis) para
+                    supervisar.<br>
+                    • <strong>Siguientes fallas similares:</strong> Se penalizará con el 20% del valor del equipo por
+                    cada nueva falla.<br>
+                    • <strong>Gastos de operación:</strong> Si la falla es por mala instalación o fabricación, todos los
+                    costos de transporte, herramientas y personal (pull & run) van por cuenta del VENDEDOR.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Cláusula Crítica -->
+            <div class="p-3.5 rounded-lg flex gap-3" style="border:1px solid var(--petrol-600); background:var(--petrol-700); color:#fff;">
+              <span class="text-lg flex-shrink-0 leading-none">⚠️</span>
+              <div>
+                <h4 class="text-xs font-700" style="color:#fff;">Cláusula Crítica (Rescisión de Contrato)</h4>
+                <p class="text-[11.5px] mt-1 font-600 leading-relaxed" style="color:rgba(255,255,255,0.9);">
+                  A partir de la TERCERA FALLA: La COMPAÑÍA tiene el derecho de cancelar unilateralmente el CONTRATO
+                  inmediatamente y sin tener que pagar ninguna indemnización al VENDEDOR.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- COLUMNA DERECHA: Gráfico Run Life de Campos -->
+          <div class="lg:col-span-6 flex flex-col justify-between">
+            <div class="mb-2">
+              <h3 class="text-xs font-700 uppercase tracking-wider text-gray-400 mb-1">Estadística de Run Life por Campo
+                (Días)</h3>
+              <p class="text-[11px] text-gray-500">Histórico de tiempo de corrida promedio del equipo de fondo ESP por
+                zona operativa</p>
+            </div>
+            <div class="relative flex-1" style="min-height: 420px; height: 420px;">
+              <canvas id="chartRunLife"></canvas>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // ══════════════════════════════════════════════
+    // REAL DATA — FROM EXCEL FILES (100% verified)
+    // ══════════════════════════════════════════════
+    const ITEMS = ["BOMBA 1", "BOMBA 2", "BOMBA 3", "BOMBA 4", "ADMISION", "PROTECTOR TANDEM", "MOTOR", "SENSOR (INCLUYE PANEL & CHOKE)", "CENTRALIZADOR DE COLA", "KIT DE INSTALACIÓN", "CABLE DE POTENCIA", "PROTECTORES DE CABLE OVERCOUPLING", "PROTECTORES DE CABLE MIDJOINT", "VALVULA CHECK ADICIONAL", "CONECTOR DE SUPERFICIE"];
+    const UNITS = { "CABLE DE POTENCIA": "ft", "PROTECTORES DE CABLE OVERCOUPLING": "und", "PROTECTORES DE CABLE MIDJOINT": "und", "BOMBA 1": "und", "BOMBA 2": "und", "BOMBA 3": "und", "BOMBA 4": "und", "ADMISION": "und", "PROTECTOR TANDEM": "und", "MOTOR": "und", "SENSOR (INCLUYE PANEL & CHOKE)": "und", "CENTRALIZADOR DE COLA": "und", "KIT DE INSTALACIÓN": "glb", "VALVULA CHECK ADICIONAL": "und", "CONECTOR DE SUPERFICIE": "und" };
+
+    const DB = {
+      "QUIFA": {
+        "QF - Tipo 1": {
+          tech: { material: "ESTANDAR", cable: "Cable plano Solido No. 6 - 5KV 450 F Galvanizado Con Plomo", profundidad: 3200, estab: ".1-3", slim: "", ytool: "", caudal_min: 300, caudal_max: 1200, tdh_min: 2334.6, tdh_max: 2350.46, depth: 3200, direction: "Vertical", bomba: "406 NH(1200-2100)H", motor: "N460PM130 3370V 3.6RPM SGL" },
+          costs: [6503.64, 0, 0, 0, 535.24, 5427.60, 6788.37, 4457.58, 326.80, 6625.02, 4.37, 30, 20.45, 1525, 5000],
+          qty: [1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 3200, 40, 6, 1, 1]
+        },
+        "QF - Tipo 2": {
+          tech: { material: "ESTANDAR", cable: "Cable plano Solido No. 6 - 5KV 450 F Galvanizado Con Plomo", profundidad: 3200, estab: ".1-3", slim: "", ytool: "", caudal_min: 3000, caudal_max: 4800, tdh_min: 1675.32, tdh_max: 1787.78, depth: 3200, direction: "Desviado", bomba: "535 NP(4700-6300)H", motor: "N460PM130 3370V 3.6RPM SGL" },
+          costs: [11241.20, 0, 0, 0, 535.24, 5427.60, 12631.37, 4457.58, 326.80, 6625.02, 4.37, 30, 20.45, 1525, 5000],
+          qty: [1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 3200, 40, 6, 1, 1]
+        },
+        "QF - Tipo 3": {
+          tech: { material: "ESTANDAR", cable: "Cable plano Solido No. 6 - 5KV 450 F Galvanizado Con Plomo", profundidad: 3200, estab: ".1-3", slim: "", ytool: "", caudal_min: 6000, caudal_max: 8000, tdh_min: 2528.68, tdh_max: 2676.58, depth: 3200, direction: "Horizontal", bomba: "535 NP(7900-10100)H", motor: "N460PM240 4030V 3.6RPM SGL" },
+          costs: [9527.60, 9527.60, 0, 0, 936.28, 6862.15, 26926.09, 4457.58, 326.80, 6625.02, 4.37, 30, 20.45, 1525, 5000],
+          qty: [1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 3200, 40, 6, 1, 1]
+        },
+        "QF - Tipo 4": {
+          tech: { material: "ESTANDAR", cable: "Cable plano Solido No. 6 - 5KV 450 F Galvanizado Con Plomo", profundidad: 3200, estab: ".1-3", slim: "", ytool: "", caudal_min: 12000, caudal_max: 12000, tdh_min: 2370.81, tdh_max: 2370.81, depth: 3200, direction: "Horizontal", bomba: "535 NP(11300-15100)H", motor: "N512PM320 3870V 3.6RPM SGL" },
+          costs: [15994.35, 15994.35, 0, 0, 936.28, 12311.25, 27395.04, 4457.58, 326.80, 6625.02, 4.37, 30, 20.45, 1525, 5000],
+          qty: [1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 3200, 40, 6, 1, 1]
+        }
+      },
+      "CAJUA": {
+        "CJ - Tipo 1": {
+          tech: { material: "ESTANDAR", cable: "Cable plano Solido No. 6 - 5KV 450 F Galvanizado Con Plomo", profundidad: 3373, estab: ".1-3", slim: "", ytool: "", caudal_min: 350, caudal_max: 1050, tdh_min: 2302.49, tdh_max: 2339.68, depth: 3373, direction: "Vertical", bomba: "406 NH(1200-2100)H", motor: "N460PM130 3370V 3.6RPM SGL" },
+          costs: [3251.81, 3251.81, 0, 0, 535.24, 5427.60, 5633.42, 4457.58, 326.80, 6625.02, 4.37, 30, 20.45, 1525, 5000],
+          qty: [1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 3373, 40, 6, 1, 1]
+        },
+        "CJ - Tipo 2": {
+          tech: { material: "ESTANDAR", cable: "Cable plano Solido No. 6 - 5KV 450 F Galvanizado Con Plomo", profundidad: 3373, estab: ".1-3", slim: "", ytool: "", caudal_min: 2000, caudal_max: 4000, tdh_min: 1456.10, tdh_max: 2004.75, depth: 3373, direction: "Desviado", bomba: "535 NP(4700-6300)H", motor: "N460PM130 3370V 3.6RPM SGL" },
+          costs: [6501.76, 6501.76, 0, 0, 535.24, 5427.60, 14924.72, 4457.58, 326.80, 6625.02, 4.37, 30, 20.45, 1525, 5000],
+          qty: [1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 3373, 40, 6, 1, 1]
+        },
+        "CJ - Tipo 3": {
+          tech: { material: "ESTANDAR", cable: "Cable plano Solido No. 6 - 5KV 450 F Galvanizado Con Plomo", profundidad: 3373, estab: ".1-3", slim: "", ytool: "", caudal_min: 6000, caudal_max: 8000, tdh_min: 2277.82, tdh_max: 2561.87, depth: 3373, direction: "Horizontal", bomba: "535 NP(7900-10100)H", motor: "N460PM240 4030V 3.6RPM SGL" },
+          costs: [14656.46, 14656.46, 0, 0, 936.28, 6862.15, 23473.95, 4457.58, 326.80, 6625.02, 4.37, 30, 20.45, 1525, 5000],
+          qty: [1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 3373, 40, 6, 1, 1]
+        },
+        "CJ - Tipo 4": {
+          tech: { material: "ESTANDAR", cable: "Cable plano Solido No. 6 - 5KV 450 F Galvanizado Con Plomo", profundidad: 3373, estab: ".1-3", slim: "", ytool: "", caudal_min: 12000, caudal_max: 12000, tdh_min: 2884.51, tdh_max: 2884.51, depth: 3373, direction: "Horizontal", bomba: "535 NP(11300-15100)H", motor: "N512PM320 3870V 3.6RPM SGL" },
+          costs: [15994.35, 15994.35, 0, 0, 936.28, 12311.25, 28320.04, 4457.58, 326.80, 6625.02, 4.37, 30, 20.45, 1525, 5000],
+          qty: [1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 3373, 40, 6, 1, 1]
+        }
+      },
+      "CUBIRO": {
+        "CUB - TIPO 1": {
+          tech: { material: "ESTANDAR", cable: "Cable plano Solido No. 4 - 5KV 450 F Galvanizado Con Plomo", profundidad: 4485, estab: ".1-1", slim: "SLIM", ytool: "Y-tool estandar", caudal_min: 200, caudal_max: 700, tdh_min: 3982.04, tdh_max: 4456.74, depth: 4485, direction: "Vertical", bomba: "319 NB(630-1000)H CMP", motor: "319 N319PM67 1090V 6.0RPM SGL" },
+          costs: [4514.43, 4514.43, 0, 0, 524.53, 5319.05, 6892.34, 4457.58, 326.80, 7600.80, 4.37, 30, 20, 1525, 5000],
+          qty: [1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 5000, 167, 167, 1, 1]
+        },
+        "CUB - TIPO 2": {
+          tech: { material: "ESTANDAR", cable: "Cable plano Solido No. 4 - 5KV 450 F Galvanizado Con Plomo", profundidad: 4640.08, estab: ".1-1", slim: "SLIM", ytool: "Y-tool estandar", caudal_min: 200, caudal_max: 800, tdh_min: 4106.48, tdh_max: 4437.23, depth: 4640.08, direction: "Desviado", bomba: "319 NB(630-1000)H", motor: "319 N319PM84 1280V 6.0RPM SGL" },
+          costs: [4248.49, 4248.49, 0, 0, 524.53, 5319.05, 6892.34, 4457.58, 326.80, 7600.80, 4.37, 30, 20, 1525, 5000],
+          qty: [1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 5000, 167, 167, 1, 1]
+        },
+        "CUB - TIPO 3": {
+          tech: { material: "ESTANDAR", cable: "Cable plano Solido No. 4 - 5KV 450 F Galvanizado Con Plomo", profundidad: 5028.88, estab: ".1-1", slim: "", ytool: "-", caudal_min: 800, caudal_max: 1400, tdh_min: 4269.89, tdh_max: 4325.68, depth: 5028.88, direction: "Desviado", bomba: "406 NH(1200-2100)H", motor: "N460PM80 2220V 3.6RPM SGL" },
+          costs: [4248.49, 4248.49, 0, 0, 524.53, 5319.05, 6892.34, 4457.58, 326.80, 7600.80, 4.37, 30, 20, 1525, 5000],
+          qty: [1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 5500, 183, 183, 1, 1]
+        },
+        "CUB - TIPO 4": {
+          tech: { material: "ESTANDAR", cable: "Cable plano Solido No. 4 - 5KV 450 F Galvanizado Con Plomo", profundidad: 5440.06, estab: ".1-1", slim: "", ytool: "-", caudal_min: 2000, caudal_max: 4000, tdh_min: 5030.73, tdh_max: 5158.62, depth: 5440.06, direction: "Desviado", bomba: "535 NP(3100-4400)H", motor: "N512PM320 3870V 3.6RPM" },
+          costs: [9138.73, 9138.73, 0, 0, 917.56, 6724.91, 0, 4457.58, 326.80, 7600.80, 4.37, 30, 20, 1525, 5000],
+          qty: [1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 5500, 183, 183, 1, 1]
+        },
+        "CUB - TIPO 5 (SLIM)": {
+          tech: { material: "ESTANDAR", cable: "Cable plano Solido No. 4 - 5KV 450 F Galvanizado Con Plomo", profundidad: 5374.5, estab: ".1-1", slim: "SLIM", ytool: "Y-tool estandar", caudal_min: 200, caudal_max: 800, tdh_min: 3985.52, tdh_max: 3986.74, depth: 5374.5, direction: "Horizontal", bomba: "319 NB(630-1000)H", motor: "N319PM67 1090V 6.0RPM SGL" },
+          costs: [16312.10, 16312.10, 0, 0, 1262.79, 16146.75, 0, 4457.58, 326.80, 7600.80, 4.37, 30, 20, 1525, 5000],
+          qty: [1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 5000, 167, 167, 1, 1]
+        },
+        "CUB - TIPO 6": {
+          tech: { material: "ESTANDAR", cable: "Cable plano Solido No. 2 - 5KV 450 F Galvanizado Con Plomo", profundidad: 4956.57, estab: ".1-1", slim: "", ytool: "-", caudal_min: 5000, caudal_max: 9000, tdh_min: 4295.99, tdh_max: 4983.79, depth: 4956.57, direction: "Horizontal", bomba: "535 NP(7900-10100)H", motor: "N512PM740 4140V 3.6RPM DBL" },
+          costs: [12579.55, 12579.55, 12579.55, 0, 1262.79, 16146.75, 0, 4457.58, 326.80, 7600.80, 4.37, 30, 20, 1525, 5000],
+          qty: [1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 5000, 167, 167, 1, 1]
+        }
+      },
+      "GUATIQUIA": {
+        "Guatiquia Tipo 1": {
+          tech: { material: "FERRITICO", cable: "Cable plano Solido No. 1 - 5KV SS con doble capilar Interno 450 F Con Plomo", profundidad: 8880, estab: ".1-1", slim: "", ytool: "Y-tool ferritica", caudal_min: 9000, caudal_max: 12000, tdh_min: 6968, tdh_max: 8925, depth: 8880, direction: "Desviado", bomba: "NP(11300-15100)H", motor: "" },
+          costs: [6372.73, 6372.73, 6372.73, 6372.73, 1846.09, 31692.79, 12824.82, 4457.58, 326.80, 11241.60, 8.04, 30, 20, 1525, 7900],
+          qty: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 10000, 333, 333, 1, 1]
+        },
+        "Guatiquia Tipo 2": {
+          tech: { material: "FERRITICO", cable: "Cable plano Solido No. 1 - 5KV SS con doble capilar Interno 450 F Con Plomo", profundidad: 8880, estab: ".1-1", slim: "", ytool: "Y-tool ferritica", caudal_min: 7200, caudal_max: 9600, tdh_min: 5211.15, tdh_max: 9209.67, depth: 8880, direction: "Desviado", bomba: "NM7500", motor: "" },
+          costs: [7845.57, 7845.57, 7845.57, 0, 4876.87, 31692.79, 21625.99, 4457.58, 326.80, 11241.60, 8.04, 30, 20, 1525, 7900],
+          qty: [1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 10000, 333, 333, 1, 1]
+        },
+        "Guatiquia Tipo 3": {
+          tech: { material: "ESTANDAR", cable: "Cable plano Solido No. 1 - 5KV Galvanizado con doble capilar Interno 450 F Con Plomo", profundidad: 8880, estab: ".1-3", slim: "", ytool: "Y-tool estandar", caudal_min: 5400, caudal_max: 7200, tdh_min: 6772.93, tdh_max: 7959.10, depth: 8880, direction: "Desviado", bomba: "NM7500", motor: "" },
+          costs: [7845.57, 7845.57, 7845.57, 0, 4876.87, 31692.79, 21625.99, 4457.58, 326.80, 11241.60, 8.04, 30, 20, 1525, 7900],
+          qty: [1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 10000, 333, 333, 1, 1]
+        },
+        "Guatiquia Tipo 4": {
+          tech: { material: "FERRITICO", cable: "Cable plano Solido No. 2 - 5KV SS con doble capilar Interno 450 F Con Plomo", profundidad: 10000, estab: ".1-1", slim: "", ytool: "Y-tool ferritica", caudal_min: 3600, caudal_max: 4800, tdh_min: 7959.27, tdh_max: 8460.99, depth: 10000, direction: "Desviado", bomba: "NM5500", motor: "" },
+          costs: [9138.73, 9138.73, 9138.73, 0, 4876.87, 34193.91, 0, 4457.58, 326.80, 11241.60, 8.04, 30, 20, 1525, 7900],
+          qty: [1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 10000, 333, 333, 1, 1]
+        },
+        "Guatiquia Tipo 5": {
+          tech: { material: "ESTANDAR", cable: "Cable plano Solido No. 2 - 5KV Galvanizado con doble capilar Interno 450 F Con Plomo", profundidad: 10000, estab: ".1-3", slim: "", ytool: "Y-tool estandar", caudal_min: 1800, caudal_max: 2400, tdh_min: 7605.13, tdh_max: 8082.12, depth: 10000, direction: "Desviado", bomba: "535 WE(3500)", motor: "" },
+          costs: [13806.70, 13806.70, 13806.70, 13806.70, 4876.87, 40738.33, 0, 4457.58, 326.80, 11241.60, 8.04, 30, 20, 1525, 7900],
+          qty: [1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 10000, 333, 333, 1, 1]
+        },
+        "Guatiquia Tipo 6": {
+          tech: { material: "FERRITICO", cable: "Cable plano Solido No. 2 - 5KV Galvanizado con doble capilar Interno 450 F Con Plomo", profundidad: 10000, estab: ".1-3", slim: "", ytool: "Y-tool estandar", caudal_min: 900, caudal_max: 1200, tdh_min: 6978.53, tdh_max: 7233.13, depth: 10000, direction: "Desviado", bomba: "NP(1900-2500)H", motor: "" },
+          costs: [23722.57, 23722.57, 23722.57, 0, 9542.33, 40738.33, 0, 4457.58, 326.80, 11241.60, 8.04, 30, 20, 1525, 7900],
+          qty: [1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 10000, 333, 333, 1, 1]
+        },
+        "Guatiquia Tipo 7": {
+          tech: { material: "ESTANDAR", cable: "Cable plano Solido No. 2 - 5KV Galvanizado con doble capilar Interno 450 F Con Plomo", profundidad: 10000, estab: ".1-3", slim: "", ytool: "Y-tool estandar", caudal_min: 450, caudal_max: 600, tdh_min: 8061, tdh_max: 8314, depth: 10000, direction: "Desviado", bomba: "NP(940-1600)H", motor: "" },
+          costs: [34621.78, 34621.78, 34621.78, 0, 9542.33, 40738.33, 0, 4457.58, 326.80, 11241.60, 8.04, 30, 20, 1525, 7900],
+          qty: [1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 7000, 233, 233, 1, 1]
+        }
+      },
+      "CORCEL": {
+        "Corcel Tipo 1": {
+          tech: { material: "ESTANDAR", cable: "Cable plano Solido No. 1 - 5KV Galvanizado con doble capilar Interno 450 F Con Plomo", profundidad: 6000, estab: ".1-3", slim: "", ytool: "Y-tool estandar", caudal_min: 13700, caudal_max: 18000, tdh_min: 5292.69, tdh_max: 6762.13, depth: 6000, direction: "Desviado", bomba: "NQ15500", motor: "AM 900 HP" },
+          costs: [9204.46, 9204.46, 9204.46, 0, 4876.87, 31692.79, 34629.32, 4457.58, 326.80, 11241.60, 8.04, 30, 20, 1525, 7900],
+          qty: [1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 10000, 333, 333, 1, 1]
+        },
+        "Corcel Tipo 2": {
+          tech: { material: "ESTANDAR", cable: "Cable plano Solido No. 1 - 5KV Galvanizado con doble capilar Interno 450 F Con Plomo", profundidad: 6000, estab: ".1-3", slim: "", ytool: "Y-tool estandar", caudal_min: 7300, caudal_max: 9600, tdh_min: 2912.18, tdh_max: 3707.51, depth: 6000, direction: "Desviado", bomba: "NP(11300-15100)H", motor: "AM 900 HP" },
+          costs: [17416.06, 17416.06, 17416.06, 0, 4876.87, 40738.33, 0, 4457.58, 326.80, 11241.60, 8.04, 30, 20, 1525, 7900],
+          qty: [1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 10000, 333, 333, 1, 1]
+        },
+        "Corcel Tipo 3": {
+          tech: { material: "ESTANDAR", cable: "Cable plano Solido No. 2 - 5KV Galvanizado con doble capilar Interno 450 F Con Plomo", profundidad: 6000, estab: ".1-3", slim: "", ytool: "Y-tool estandar", caudal_min: 5400, caudal_max: 7200, tdh_min: 2533.75, tdh_max: 3076.40, depth: 6000, direction: "Desviado", bomba: "NP(7900-10100)H", motor: "AM 480HP" },
+          costs: [54425.97, 54425.97, 0, 0, 9542.33, 40738.33, 0, 4457.58, 326.80, 11241.60, 8.04, 30, 20, 1525, 7900],
+          qty: [1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 10000, 333, 333, 1, 1]
+        },
+        "Corcel NE Tipo 1": {
+          tech: { material: "ESTANDAR", cable: "Cable plano Solido No. 1 - 5KV Galvanizado con doble capilar Interno 450 F Con Plomo", profundidad: 6000, estab: ".1-1", slim: "", ytool: "Y-tool estandar", caudal_min: 9200, caudal_max: 12000, tdh_min: 3644.58, tdh_max: 4561.55, depth: 6000, direction: "Desviado", bomba: "NP(11300-15100)H", motor: "AMM 900 HP" },
+          costs: [40121.33, 40121.33, 40121.33, 0, 9542.33, 40738.33, 0, 4457.58, 326.80, 11241.60, 8.04, 30, 20, 1525, 7900],
+          qty: [1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 7000, 233, 233, 1, 1]
+        },
+        "Corcel NE Tipo 2": {
+          tech: { material: "ESTANDAR", cable: "Cable plano Solido No. 1 - 5KV Galvanizado con doble capilar Interno 450 F Con Plomo", profundidad: 6000, estab: ".1-3", slim: "", ytool: "Y-tool estandar", caudal_min: 13800, caudal_max: 18000, tdh_min: 5555.69, tdh_max: 7918.65, depth: 6000, direction: "Desviado", bomba: "NQ15500", motor: "N512AM320 3870V 3.6RPM SGL" },
+          costs: [54425.97, 54425.97, 54425.97, 0, 9542.33, 40738.33, 0, 4457.58, 326.80, 11241.60, 8.04, 30, 20, 1525, 7900],
+          qty: [1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 7000, 233, 233, 1, 1]
+        }
+      },
+      "CPE6 (HAMACA)": {
+        "Hamaca - tipo 1": {
+          tech: { material: "ESTANDAR", cable: "Cable plano Solido No. 4 - 5KV 450 F Galvanizado Con Plomo", profundidad: 3031.49, estab: ".1-1", slim: "", ytool: "-", caudal_min: 1100, caudal_max: 1900, tdh_min: 2594.23, tdh_max: 2679.90, depth: 3031.49, direction: "Vertical", bomba: "NP(1900-2500)H", motor: "319 N319PM67 1090V 6.0RPM SGL" },
+          costs: [3186.78, 3186.78, 0, 0, 524.53, 5319.05, 5719.70, 4457.58, 326.80, 7600.80, 4.37, 30, 20, 1525, 5000],
+          qty: [1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 3470, 115, 115, 1, 1]
+        },
+        "Hamaca - tipo 2": {
+          tech: { material: "ESTANDAR", cable: "Cable plano Solido No. 4 - 5KV 450 F Galvanizado Con Plomo", profundidad: 3503.2, estab: ".1-1", slim: "", ytool: "-", caudal_min: 1250, caudal_max: 2150, tdh_min: 2287.17, tdh_max: 2368.08, depth: 3503.2, direction: "Desviado", bomba: "NP(1900-2500)H", motor: "N460PM130 3370V 3.6RPM SGL" },
+          costs: [5508.19, 5508.19, 0, 0, 524.53, 7598.66, 0, 4457.58, 326.80, 7293.80, 4.37, 30, 20, 1525, 5000],
+          qty: [1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 3260, 108, 108, 1, 1]
+        },
+        "Hamaca - tipo 3": {
+          tech: { material: "ESTANDAR", cable: "Cable plano Solido No. 4 - 5KV 450 F Galvanizado Con Plomo", profundidad: 3246.3, estab: ".1-1", slim: "", ytool: "-", caudal_min: 2300, caudal_max: 3850, tdh_min: 2597.24, tdh_max: 2675.06, depth: 3246.3, direction: "Horizontal", bomba: "NP(3100-4400)H", motor: "N460PM240 4030V 3.6RPM SGL" },
+          costs: [6371.72, 6371.72, 0, 0, 524.53, 5319.05, 0, 4457.58, 326.80, 7293.80, 4.37, 30, 20, 1525, 5000],
+          qty: [1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 3360, 112, 112, 1, 1]
+        },
+        "Hamaca - tipo 4": {
+          tech: { material: "ESTANDAR", cable: "Cable plano Solido No. 4 - 5KV 450 F Galvanizado Con Plomo", profundidad: 3157.9, estab: ".1-3", slim: "", ytool: "-", caudal_min: 3700, caudal_max: 6200, tdh_min: 2353.14, tdh_max: 2488.22, depth: 3157.9, direction: "Horizontal", bomba: "NP(4700-6300)H", motor: "PMM 480 HP" },
+          costs: [12783.46, 12783.46, 0, 0, 917.56, 6724.91, 23833.46, 4457.58, 326.80, 7293.80, 4.37, 30, 20, 1525, 5000],
+          qty: [1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 3360, 112, 112, 1, 1]
+        },
+        "Hamaca - tipo 5": {
+          tech: { material: "ESTANDAR", cable: "Cable plano Solido No. 4 - 5KV 450 F Galvanizado Con Plomo", profundidad: 3330.3, estab: ".1-3", slim: "", ytool: "-", caudal_min: 6000, caudal_max: 11300, tdh_min: 3181.78, tdh_max: 3926.53, depth: 3330.3, direction: "Horizontal", bomba: "NP(11300-15100)H", motor: "N512PM320 3870V 3.6RPM SGL" },
+          costs: [10715.97, 10715.97, 0, 0, 917.56, 6724.91, 0, 4457.58, 326.80, 7293.80, 4.37, 30, 20, 1525, 5000],
+          qty: [1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 3360, 112, 112, 1, 1]
+        },
+        "Hamaca - tipo 6 (SLIM)": {
+          tech: { material: "ESTANDAR", cable: "Cable plano Solido No. 4 - 5KV 450 F Galvanizado Con Plomo", profundidad: 3870.8, estab: ".1-3", slim: "SLIM", ytool: "Y-tool estandar", caudal_min: 4100, caudal_max: 6800, tdh_min: 1319.9, tdh_max: 1405.77, depth: 3870.8, direction: "Horizontal", bomba: "NP(7900-10100)H", motor: "N512PM320 3870V 3.6RPM SGL" },
+          costs: [3186.78, 3186.78, 0, 0, 524.53, 5319.05, 5719.70, 4457.58, 326.80, 7293.80, 4.37, 30, 20, 1525, 5000],
+          qty: [1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 3470, 115, 115, 1, 1]
+        }
+      },
+      "CRAVOVIEJO": {
+        "Carrizales Tipo 1": {
+          tech: { material: "ESTANDAR", cable: "Cable plano Solido No. 1 - 5KV 450 F Galvanizado Con Plomo", profundidad: 7906, estab: ".1-3", slim: "", ytool: "Y-tool estandar", caudal_min: 5300, caudal_max: 9000, tdh_min: 7564.15, tdh_max: 8381.72, depth: 7906, direction: "Vertical", bomba: "535 WE(3500)", motor: "AM 320 HP" },
+          costs: [11361.67, 11361.67, 11361.67, 0, 4876.87, 6724.91, 25486.10, 4457.58, 326.80, 11241.60, 8.04, 30, 20, 1525, 5000],
+          qty: [1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 7400, 247, 247, 1, 1]
+        },
+        "Bastidas -Tipo#1": {
+          tech: { material: "ESTANDAR", cable: "Cable plano Solido No. 2 - 5KV 450 F Galvanizado Con Plomo", profundidad: 8000, estab: ".1-1", slim: "", ytool: "Y-tool estandar", caudal_min: 2300, caudal_max: 3800, tdh_min: 5813.90, tdh_max: 6113.98, depth: 8000, direction: "Vertical", bomba: "535 WE(3500)", motor: "AM 320 HP" },
+          costs: [8281.98, 8281.98, 8281.98, 0, 4876.87, 6724.91, 0, 4457.58, 326.80, 7600.80, 8.04, 30, 20, 1525, 5000],
+          qty: [1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 5000, 167, 167, 1, 1]
+        },
+        "Bastidas -Tipo#2": {
+          tech: { material: "ESTANDAR", cable: "Cable plano Solido No. 1 - 5KV 450 F Galvanizado Con Plomo", profundidad: 8270, estab: ".1-3", slim: "", ytool: "Y-tool estandar", caudal_min: 7200, caudal_max: 12000, tdh_min: 4807.33, tdh_max: 5929.55, depth: 8270, direction: "Desviado", bomba: "NP(11300-15100)H", motor: "AM 900 HP" },
+          costs: [8281.98, 8281.98, 8281.98, 0, 4876.87, 6724.91, 0, 4457.58, 326.80, 7600.80, 8.04, 30, 20, 1525, 5000],
+          qty: [1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 5000, 167, 167, 1, 1]
+        },
+        "Zopilote Sur Tipo": {
+          tech: { material: "FERRITICO", cable: "Cable plano Solido No. 1 - 5KV 450 F Galvanizado Con Plomo", profundidad: 8612.83, estab: ".1-3", slim: "", ytool: "Y-tool estandar", caudal_min: 7600, caudal_max: 12000, tdh_min: 3679.86, tdh_max: 5200.20, depth: 8612.83, direction: "Desviado", bomba: "NP(11300-15100)H", motor: "AM 900 HP" },
+          costs: [11361.67, 11361.67, 11361.67, 0, 4876.87, 6724.91, 0, 4457.58, 326.80, 11241.60, 8.04, 30, 20, 1525, 5000],
+          qty: [1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 7400, 247, 247, 1, 1]
+        },
+        "Zopilote -Tipo#1": {
+          tech: { material: "FERRITICO", cable: "Cable plano Solido No. 2 - 5KV 450 F Galvanizado Con Plomo", profundidad: 8034, estab: ".1-1", slim: "", ytool: "Y-tool estandar", caudal_min: 800, caudal_max: 1350, tdh_min: 7010.53, tdh_max: 7094.11, depth: 8034, direction: "Desviado", bomba: "535 FLEX 47", motor: "AM 200 HP" },
+          costs: [9871.02, 9871.02, 9871.02, 0, 4876.87, 6724.91, 0, 4457.58, 326.80, 11241.60, 8.04, 30, 20, 1525, 5000],
+          qty: [1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 8300, 277, 277, 1, 1]
+        },
+        "Zopilote -Tipo#3": {
+          tech: { material: "FERRITICO", cable: "Cable plano Solido No. 1 - 5KV 450 F Galvanizado Con Plomo", profundidad: 8548, estab: ".1-3", slim: "", ytool: "-", caudal_min: 13400, caudal_max: 22500, tdh_min: 2068.26, tdh_max: 3076.47, depth: 8548, direction: "Desviado", bomba: "NP(14200-19800)H", motor: "AM 900 HP" },
+          costs: [17416.06, 17416.06, 17416.06, 0, 4876.87, 12065.03, 0, 4457.58, 326.80, 11241.60, 8.04, 30, 20, 1525, 5000],
+          qty: [1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 7400, 247, 247, 1, 1]
+        }
+      },
+      "ARRENDAJO": {
+        "Arrendajo -Tipo#1": {
+          tech: { material: "FERRITICO", cable: "Cable plano Solido No. 1 - 5KV Galvanizado con 1 Capilar Interno 450 F Con Plomo", profundidad: 5770, estab: ".1-3", slim: "SLIM", ytool: "-", caudal_min: 3100, caudal_max: 5300, tdh_min: 3683.94, tdh_max: 3923.13, depth: 5770, direction: "Desviado", bomba: "535 FLEX 47", motor: "AM 320 HP" },
+          costs: [7701.46, 7701.46, 7701.46, 0, 1846.09, 5319.05, 6892.34, 4457.58, 326.80, 7600.80, 6.10, 30, 20, 1525, 5000],
+          qty: [1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 6000, 200, 200, 1, 1]
+        },
+        "Arrendajo -Tipo#2": {
+          tech: { material: "FERRITICO", cable: "Cable plano Solido No. 1 - 5KV Galvanizado con 1 Capilar Interno 450 F Con Plomo", profundidad: 7436, estab: ".1-1", slim: "", ytool: "-", caudal_min: 300, caudal_max: 500, tdh_min: 4849.79, tdh_max: 5128.66, depth: 7436, direction: "Desviado", bomba: "400 SN 1500", motor: "AM 51 HP" },
+          costs: [5664.65, 5664.65, 5664.65, 0, 1846.09, 5319.05, 0, 4457.58, 326.80, 7600.80, 6.10, 30, 20, 1525, 5000],
+          qty: [1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 7000, 233, 233, 1, 1]
+        },
+        "Arrendajo -Tipo#3": {
+          tech: { material: "FERRITICO", cable: "Cable plano Solido No. 2 - 5KV Galvanizado con 1 Capilar Interno 450 F Con Plomo", profundidad: 6486, estab: ".1-3", slim: "", ytool: "-", caudal_min: 3500, caudal_max: 5900, tdh_min: 3889.34, tdh_max: 4289.77, depth: 6486, direction: "Desviado", bomba: "NP(4700-6300)H", motor: "AM 320 HP" },
+          costs: [9138.73, 9138.73, 9138.73, 0, 4876.87, 6724.91, 0, 4457.58, 326.80, 7600.80, 6.10, 30, 20, 1525, 5000],
+          qty: [1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 7000, 233, 233, 1, 1]
+        }
+      },
+      "CACHICAMO": {
+        "Cachicamo -Tipo#1": {
+          tech: { material: "ESTANDAR", cable: "Cable plano Solido No. 4 - 5KV 450 F Galvanizado Con Plomo", profundidad: 6451, estab: ".1-1", slim: "", ytool: "-", caudal_min: 1000, caudal_max: 1700, tdh_min: 5522.62, tdh_max: 5585.93, depth: 6451, direction: "Desviado", bomba: "NP(1900-2500)H", motor: "AM 130 HP" },
+          costs: [6372.73, 6372.73, 6372.73, 0, 1846.09, 5319.05, 8087.86, 4457.58, 326.80, 7600.80, 6.10, 30, 20, 1525, 5000],
+          qty: [1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 6600, 220, 220, 1, 1]
+        },
+        "Cachicamo -Tipo#2": {
+          tech: { material: "ESTANDAR", cable: "Cable plano Solido No. 2 - 5KV 450 F Galvanizado Con Plomo", profundidad: 6833, estab: ".1-3", slim: "", ytool: "-", caudal_min: 3100, caudal_max: 5300, tdh_min: 5725.25, tdh_max: 6006.66, depth: 6833, direction: "Desviado", bomba: "NP(4700-6300)H", motor: "AM 370 HP" },
+          costs: [9138.73, 9138.73, 9138.73, 0, 4876.87, 6724.91, 0, 4457.58, 326.80, 7600.80, 8.04, 30, 20, 1525, 5000],
+          qty: [1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 6600, 220, 220, 1, 1]
+        }
+      },
+      "CASIMENA": {
+        "Casimena -Tipo#1": {
+          tech: { material: "ESTANDAR", cable: "Cable plano Solido No. 4 - 5KV 450 F Galvanizado Con Plomo", profundidad: 6500, estab: ".1-3", slim: "", ytool: "-", caudal_min: 2100, caudal_max: 3500, tdh_min: 5947.15, tdh_max: 6054.10, depth: 6500, direction: "Desviado", bomba: "NP(3100-4400)H", motor: "AM 320 HP" },
+          costs: [9204.46, 9204.46, 9204.46, 0, 4876.87, 6724.91, 27338.48, 4457.58, 326.80, 7600.80, 8.04, 30, 20, 1525, 5000],
+          qty: [1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 4000, 133, 133, 1, 1]
+        },
+        "Casimena -Tipo#2": {
+          tech: { material: "ESTANDAR", cable: "Cable plano Solido No. 1 - 5KV 450 F Galvanizado Con Plomo", profundidad: 6074, estab: ".1-1", slim: "", ytool: "-", caudal_min: 7200, caudal_max: 12000, tdh_min: 1675.62, tdh_max: 2411.70, depth: 6074, direction: "Desviado", bomba: "NP(11300-15100)H", motor: "AM 450 HP" },
+          costs: [10449.64, 10449.64, 10449.64, 0, 4876.87, 6724.91, 0, 4457.58, 326.80, 7600.80, 8.04, 30, 20, 1525, 5000],
+          qty: [1, 1, 1, 0, 1, 1, 0, 1, 1, 1, 4000, 133, 133, 1, 1]
+        }
+      },
+      "MAPACHE": {
+        "Mapache -Tipo#1": {
+          tech: { material: "ESTANDAR", cable: "Cable plano Solido No. 2 - 5KV 450 F Galvanizado Con Plomo", profundidad: 8100, estab: ".1-3", slim: "", ytool: "Y-tool estandar", caudal_min: 1800, caudal_max: 3100, tdh_min: 6353.78, tdh_max: 6580.41, depth: 8100, direction: "Desviado", bomba: "NP(3100-4400)H", motor: "AM 320 HP" },
+          costs: [15340.78, 15340.78, 15340.78, 0, 4876.87, 12065.03, 26038.54, 4457.58, 326.80, 11241.60, 8.04, 30, 20, 1525, 5000],
+          qty: [1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 8200, 273, 273, 1, 1]
+        }
+      },
+      "SABANERO": {
+        "SAB - Tipo 1": {
+          tech: { material: "ESTANDAR", cable: "Cable plano Solido No. 4 - 5KV 450 F Galvanizado Con Plomo", profundidad: 2800, estab: ".1-3", slim: "", ytool: "", caudal_min: 300, caudal_max: 1500, tdh_min: 1674.42, tdh_max: 1727.31, depth: 2800, direction: "Vertical", bomba: "NH(1500-2500)H", motor: "PMM 51 HP" },
+          costs: [3186.78, 3186.78, 0, 0, 524.53, 5319.05, 5719.70, 4457.58, 326.80, 7600.80, 4.37, 30, 20, 1525, 5000],
+          qty: [1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 4000, 133, 133, 1, 1]
+        },
+        "SAB - Tipo 2": {
+          tech: { material: "ESTANDAR", cable: "Cable plano Solido No. 4 - 5KV 450 F Galvanizado Con Plomo", profundidad: 5700, estab: ".1-3", slim: "", ytool: "", caudal_min: 500, caudal_max: 2500, tdh_min: 2233.36, tdh_max: 2140.46, depth: 5700, direction: "Desviado", bomba: "NP(3100-4400)H", motor: "PMM 80 HP" },
+          costs: [8281.98, 8281.98, 0, 0, 524.53, 5319.05, 0, 4457.58, 326.80, 7293.80, 4.37, 30, 20, 1525, 5000],
+          qty: [1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 3180, 106, 106, 1, 1]
+        },
+        "SAB - Tipo 3": {
+          tech: { material: "ESTANDAR", cable: "Cable plano Solido No. 4 - 5KV 450 F Galvanizado Con Plomo", profundidad: 5700, estab: ".1-3", slim: "", ytool: "", caudal_min: 2000, caudal_max: 5000, tdh_min: 2584.31, tdh_max: 3342.57, depth: 5700, direction: "Desviado", bomba: "NP(4700-6300)H", motor: "PMM 200 HP" },
+          costs: [8281.98, 8281.98, 0, 0, 524.53, 5319.05, 0, 4457.58, 326.80, 7293.80, 4.37, 30, 20, 1525, 5000],
+          qty: [1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 3180, 106, 106, 1, 1]
+        },
+        "SAB - Tipo 4": {
+          tech: { material: "ESTANDAR", cable: "Cable plano Solido No. 4 - 5KV 450 F Galvanizado Con Plomo", profundidad: 3150, estab: ".1-3", slim: "", ytool: "", caudal_min: 300, caudal_max: 2000, tdh_min: 1267, tdh_max: 1362.81, depth: 3150, direction: "Desviado", bomba: "NH(2500-3100)H", motor: "PMM 51 HP" },
+          costs: [11007.79, 11007.79, 0, 0, 917.56, 6724.91, 21625.99, 4457.58, 326.80, 7293.80, 4.37, 30, 20, 1525, 5000],
+          qty: [1, 1, 0, 0, 1, 1, 1, 1, 1, 1, 2973, 99, 99, 1, 1]
+        },
+        "SAB - Tipo 5": {
+          tech: { material: "ESTANDAR", cable: "Cable plano Solido No. 4 - 5KV 450 F Galvanizado Con Plomo", profundidad: 3150, estab: ".1-3", slim: "", ytool: "", caudal_min: 1000, caudal_max: 5000, tdh_min: 1292.20, tdh_max: 1604.06, depth: 3150, direction: "Desviado", bomba: "NP(4700-6300)H", motor: "PMM 100 HP" },
+          costs: [9337.05, 9337.05, 0, 0, 917.56, 6724.91, 0, 4457.58, 326.80, 7293.80, 4.37, 30, 20, 1525, 5000],
+          qty: [1, 1, 0, 0, 1, 1, 0, 1, 1, 1, 2973, 99, 99, 1, 1]
+        }
+      }
+    };
+
+    // ══════════════════════════════════════════════
+    // PROGRAMMATIC DYNAMIC EXTENSION & HELPERS
+    // ══════════════════════════════════════════════
+    const serviceMapping = {
+      "QUIFA": { run: 29396292, pull: 24223799 },
+      "CAJUA": { run: 29396292, pull: 24223799 },
+      "CUBIRO": { run: 36865119, pull: 32022345 },
+      "GUATIQUIA": {
+        default: { run: 54115212, pull: 48411522 },
+        "Guatiquia Tipo 7": { run: 36865119, pull: 32022345 }
+      },
+      "CORCEL": {
+        default: { run: 54115212, pull: 48411522 },
+        "Corcel Tipo 3": { run: 36865119, pull: 32022345 },
+        "Corcel NE Tipo 1": { run: 36865119, pull: 32022345 },
+        "Corcel NE Tipo 2": { run: 36865119, pull: 32022345 }
+      },
+      "CPE6 (HAMACA)": { run: 28699148, pull: 23649322 },
+      "CRAVOVIEJO": { run: 54115212, pull: 48411522 },
+      "ARRENDAJO": { run: 36865119, pull: 32022345 },
+      "CACHICAMO": { run: 36865119, pull: 32022345 },
+      "CASIMENA": { run: 36865119, pull: 32022345 },
+      "MAPACHE": { run: 54115212, pull: 48411522 },
+      "SABANERO": {
+        "SAB - Tipo 1": { run: 28699148, pull: 23649322 },
+        "SAB - Tipo 2": { run: 36865119, pull: 32022345 },
+        "SAB - Tipo 3": { run: 36865119, pull: 32022345 },
+        "SAB - Tipo 4": { run: 28699148, pull: 23649322 },
+        "SAB - Tipo 5": { run: 28699148, pull: 23649322 }
+      }
+    };
+
+    const vsdPrices = {
+      JVA: {
+        200: [28076.61, 19026.44, 10455.27, 5671.00, 9530.38, 1680.00, 2597.84],
+        320: [33291.87, 22449.66, 12348.35, 5671.00, 11577.09, 1680.00, 2597.84],
+        340: [38298.00, 24928.00, 13723.00, 5789.00, 12268.00, 1680.00, 2597.84]
+      },
+      "100%": {
+        200: [28645.96, 19301.79, 10667.28, 5786.00, 9723.64, 1680.00, 2597.84],
+        320: [33966.98, 22794.43, 12598.75, 5786.00, 11811.86, 1680.00, 2597.84],
+        340: [38298.00, 24928.00, 13723.00, 5789.00, 12268.00, 1680.00, 2597.84]
+      }
+    };
+
+    ITEMS.push("SERVICIOS RUN", "SERVICIOS DE PULL");
+    UNITS["SERVICIOS RUN"] = "glb";
+    UNITS["SERVICIOS DE PULL"] = "glb";
+
+    Object.keys(DB).forEach(campoKey => {
+      const wells = DB[campoKey];
+      const mapping = serviceMapping[campoKey];
+      Object.keys(wells).forEach(wellKey => {
+        let runCOP = 0;
+        let pullCOP = 0;
+        if (mapping) {
+          if (mapping.run !== undefined) {
+            runCOP = mapping.run;
+            pullCOP = mapping.pull;
+          } else {
+            const normalizedWell = wellKey.toLowerCase().replace(/[^a-z0-9]/g, '');
+            let found = false;
+            for (const mapWellKey of Object.keys(mapping)) {
+              const normalizedMapWell = mapWellKey.toLowerCase().replace(/[^a-z0-9]/g, '');
+              if (normalizedWell.includes(normalizedMapWell) || normalizedMapWell.includes(normalizedWell)) {
+                runCOP = mapping[mapWellKey].run;
+                pullCOP = mapping[mapWellKey].pull;
+                found = true;
+                break;
+              }
+            }
+            if (!found && mapping.default) {
+              runCOP = mapping.default.run;
+              pullCOP = mapping.default.pull;
+            }
+          }
+        }
+        const runUSD = Number((runCOP / 4000).toFixed(2));
+        const pullUSD = Number((pullCOP / 4000).toFixed(2));
+
+        let contractType = "100%";
+        if (campoKey === "QUIFA" || campoKey === "CAJUA") {
+          contractType = "JVA";
+        }
+        wells[wellKey].tech.contrato = contractType;
+
+        let kvaVal = 0;
+        let hasSurface = false;
+        if (campoKey === "QUIFA") {
+          if (wellKey === "QF - Tipo 1" || wellKey === "QF - Tipo 2") {
+            kvaVal = 320;
+            hasSurface = true;
+          } else if (wellKey === "QF - Tipo 3" || wellKey === "QF - Tipo 4") {
+            kvaVal = 340;
+            hasSurface = true;
+          }
+        } else if (campoKey === "CAJUA") {
+          kvaVal = 340;
+          hasSurface = true;
+        } else if (campoKey === "SABANERO") {
+          kvaVal = 200;
+          hasSurface = true;
+        } else if (campoKey === "CUBIRO") {
+          kvaVal = 200;
+          hasSurface = true;
+        } else if (campoKey === "CPE6 (HAMACA)") {
+          if (wellKey !== "Hamaca - tipo 6 (SLIM)") {
+            kvaVal = 340;
+            hasSurface = true;
+          }
+        } else if (["CRAVOVIEJO", "ARRENDAJO", "CACHICAMO", "CASIMENA", "MAPACHE"].includes(campoKey)) {
+          kvaVal = 340;
+          hasSurface = true;
+        }
+
+        wells[wellKey].tech.variador = kvaVal > 0 ? `${kvaVal} KVA` : "—";
+
+        // Update cable costs (index 10) to the updated values
+        if (campoKey === "GUATIQUIA" || campoKey === "CORCEL") {
+          wells[wellKey].costs[10] = 17.21;
+        } else if (campoKey === "ARRENDAJO") {
+          wells[wellKey].costs[10] = 12.70;
+        }
+
+        // Push Services
+        wells[wellKey].costs.push(runUSD, pullUSD);
+        wells[wellKey].qty.push(1, 1);
+
+        // Push Surface elements
+        const sPrices = (hasSurface && vsdPrices[contractType] && vsdPrices[contractType][kvaVal])
+          ? vsdPrices[contractType][kvaVal]
+          : [0, 0, 0, 0, 0, 0, 0];
+
+        sPrices.forEach(cost => {
+          wells[wellKey].costs.push(cost);
+          wells[wellKey].qty.push(hasSurface ? 1 : 0);
+        });
+      });
+    });
+
+    function getCapillaryInfo(cableStr) {
+      if (!cableStr) return { has: "No", count: 0 };
+      const lower = cableStr.toLowerCase();
+      if (lower.includes("doble capilar") || lower.includes("2 capilar") || lower.includes("dos capilar")) {
+        return { has: "Sí", count: 2 };
+      } else if (lower.includes("1 capilar") || lower.includes("un capilar") || lower.includes("con capilar")) {
+        return { has: "Sí", count: 1 };
+      } else if (lower.includes("capilar")) {
+        const match = lower.match(/(\d+)\s*capilar/);
+        if (match) {
+          return { has: "Sí", count: parseInt(match[1]) };
+        }
+        return { has: "Sí", count: 1 };
+      }
+      return { has: "No", count: 0 };
+    }
+
+    // ══ STATE ══
+    let campo = "QUIFA", pozo = "QF - Tipo 3";
+    let liveData = null, origData = null;
+    let chartDonut = null, chartBar = null, chartCampo = null, chartSegmentos = null;
+    let currentTheme = 'petrol';
+    const PALETTES = {
+      petrol: ['#0a1f1d', '#0e2d2a', '#123d38', '#1a524b', '#266b62', '#38877c', '#5ea89e', '#93cbc3', '#3e434d', '#7d8491', '#a1a7b3'],
+      jade: ['#080807', '#0d2127', '#13343d', '#2a6469', '#4d9695', '#6ea99a', '#8fbe9f', '#e0e0cb', '#3e434d', '#7d8491', '#a1a7b3']
+    };
+
+    // Favorite wells (displayed at top of selector with a star)
+    const FAVORITE_WELLS = [
+      'ARRENDAJO - Tipo 3',
+      'CORCEL Tipo 3',
+      'GUATIQUIA Tipo 2',
+      'SAB - Tipo 4'
+    ];
+
+    if (window.Chart) {
+      Chart.defaults.font.family = "'DM Sans', sans-serif";
+      Chart.defaults.font.size = 9;
+      Chart.defaults.color = '#5a6170';
+      if (window.ChartDataLabels) {
+        Chart.defaults.plugins.datalabels = { display: false };
+      }
+    }
+
+    function toggleTheme() {
+      const btn = document.getElementById('btn-theme');
+      if (currentTheme === 'petrol') {
+        currentTheme = 'jade';
+        document.body.classList.add('theme-jade');
+        if (btn) btn.textContent = 'Tema: Jade';
+      } else {
+        currentTheme = 'petrol';
+        document.body.classList.remove('theme-jade');
+        if (btn) btn.textContent = 'Tema: Azul';
+      }
+      render();
+    }
+
+    // ══ INIT ══
+    window.onload = () => {
+      refreshDropdowns();
+      loadWell();
+    };
+
+    function refreshDropdowns() {
+      const selC = document.getElementById('sel-campo');
+      const prevC = selC.value || campo || 'QUIFA';
+      selC.innerHTML = '';
+      Object.keys(DB).sort().forEach(c => {
+        const o = document.createElement('option'); o.value = c; o.text = c;
+        selC.add(o);
+      });
+      if (DB[prevC]) {
+        selC.value = prevC;
+      } else {
+        selC.value = Object.keys(DB).sort()[0];
+      }
+
+      campo = selC.value;
+      const selP = document.getElementById('sel-pozo');
+      const prevP = selP.value || pozo;
+      selP.innerHTML = '';
+      const favSet = new Set(FAVORITE_WELLS.map(w => w.toLowerCase()));
+      Object.keys(DB[campo]).forEach(p => {
+        const o = document.createElement('option');
+        o.value = p;
+        o.text = favSet.has(p.toLowerCase()) ? p + ' ★' : p;
+        selP.add(o);
+      });
+      if (DB[campo][prevP]) {
+        selP.value = prevP;
+      } else {
+        selP.value = Object.keys(DB[campo])[0];
+      }
+      pozo = selP.value;
+    }
+
+    function onCampo() {
+      campo = document.getElementById('sel-campo').value;
+      const selP = document.getElementById('sel-pozo');
+      selP.innerHTML = '';
+      // Add favorite wells first
+      FAVORITE_WELLS.forEach(p => {
+        if (DB[campo][p]) {
+          const o = document.createElement('option'); o.value = p; o.text = p + ' ★';
+          selP.add(o);
+        }
+      });
+      // Then add remaining wells
+      Object.keys(DB[campo]).filter(p => !FAVORITE_WELLS.includes(p)).forEach(p => {
+        const o = document.createElement('option'); o.value = p; o.text = p;
+        selP.add(o);
+      });
+      pozo = selP.value;
+      loadWell();
+    }
+
+    function onPozo() {
+      pozo = document.getElementById('sel-pozo').value;
+      loadWell();
+    }
+
+    function loadWell() {
+      const raw = DB[campo][pozo];
+      origData = JSON.parse(JSON.stringify(raw));
+      liveData = JSON.parse(JSON.stringify(raw));
+      initDiscountSelections();
+      render();
+    }
+
+    function restoreData() {
+      liveData = JSON.parse(JSON.stringify(origData));
+      initDiscountSelections();
+      render();
+    }
+
+    function render() {
+      const { tech, costs, qty } = liveData;
+      const total = costs.reduce((s, c, i) => s + c * qty[i], 0);
+
+      // KPIs
+      document.getElementById('kpi-capex').textContent = '$' + fmt(total);
+      updateDiscountKPIs();
+      document.getElementById('kpi-capex-sub').textContent = `${campo} · ${pozo}`;
+      document.getElementById('kpi-caudal').textContent = tech.caudal_min === tech.caudal_max
+        ? fmtN(tech.caudal_min) : `${fmtN(tech.caudal_min)} – ${fmtN(tech.caudal_max)}`;
+      document.getElementById('kpi-depth').textContent = fmtN(tech.depth);
+      document.getElementById('kpi-tdh').textContent = `${fmtN(Math.round(tech.tdh_min))} – ${fmtN(Math.round(tech.tdh_max))}`;
+      document.getElementById('kpi-dir').textContent = `${tech.direction || '—'} · ${tech.material}`;
+      document.getElementById('kpi-cable').textContent = tech.cable;
+
+      // Ficha
+      document.getElementById('ft-material').textContent = tech.material;
+      document.getElementById('ft-estab').textContent = tech.estab;
+      const ytEl = document.getElementById('ft-ytool');
+      const hasY = tech.ytool && tech.ytool !== '-' && tech.ytool !== '';
+      const hasSlim = tech.slim === 'SLIM';
+      ytEl.innerHTML = '';
+      if (hasSlim) ytEl.innerHTML += `<span class="tag tag-rose mr-1">SLIM</span>`;
+      if (hasY) ytEl.innerHTML += `<span class="tag tag-blue">${tech.ytool}</span>`;
+      if (!hasSlim && !hasY) ytEl.innerHTML = '<span class="tag tag-slate">No</span>';
+      document.getElementById('ft-prof').textContent = fmtN(tech.profundidad) + ' ft';
+
+      // Capilar
+      const capInfo = getCapillaryInfo(tech.cable);
+      const capEl = document.getElementById('ft-capilar');
+      if (capEl) {
+        if (capInfo.has === "Sí") {
+          capEl.innerHTML = `<span class="tag tag-blue">Sí (${capInfo.count})</span>`;
+        } else {
+          capEl.innerHTML = `<span class="tag tag-slate">No</span>`;
+        }
+      }
+
+      document.getElementById('ft-cable').textContent = tech.cable;
+
+      // Variador
+      const varEl = document.getElementById('ft-variador');
+      if (varEl) {
+        varEl.textContent = tech.variador || '—';
+      }
+
+      // Bomba & Motor Description
+      const bombaEl = document.getElementById('ft-bomba');
+      if (bombaEl) {
+        const val = tech.bomba || '—';
+        bombaEl.textContent = val;
+        bombaEl.setAttribute('title', val);
+      }
+      const motorEl = document.getElementById('ft-motor');
+      if (motorEl) {
+        const val = tech.motor || '—';
+        let motorTypeBadge = '';
+        if (val !== '—') {
+          const lowerVal = val.toLowerCase();
+          if (lowerVal.includes('pmm') || lowerVal.includes('pm')) {
+            motorTypeBadge = ' <span class="tag tag-green ml-1.5" style="font-size: 9px; padding: 1px 5px;">PMM</span>';
+          } else if (lowerVal.includes('am')) {
+            motorTypeBadge = ' <span class="tag tag-blue ml-1.5" style="font-size: 9px; padding: 1px 5px;">AM</span>';
+          }
+        }
+        motorEl.innerHTML = val + motorTypeBadge;
+        motorEl.setAttribute('title', val);
+      }
+
+      // Direction badge
+      const dirBadge = document.getElementById('dir-badge');
+      const dirColors = { Vertical: 'var(--petrol-600)', Desviado: 'var(--petrol-500)', Horizontal: 'var(--petrol-400)', '': 'var(--ink-400)' };
+      const dirTxt = { Vertical: 'Vertical', Desviado: 'Desviado', Horizontal: 'Horizontal', '': '—' };
+      dirBadge.innerHTML = `<span class="w-2 h-2 rounded-full inline-block" style="background:${dirColors[tech.direction] || 'var(--ink-400)'}"></span><span class="text-[10px] font-600" style="color:var(--ink-600)">${dirTxt[tech.direction] || '—'}</span>`;
+
+      // SVG pump visibility
+      const p2 = qty[1] > 0, p3 = qty[2] > 0;
+      document.getElementById('svg-p2').style.opacity = p2 ? '1' : '0.2';
+      document.getElementById('svg-p3').style.opacity = p3 ? '1' : '0.2';
+      document.getElementById('svg-ytool-g').style.opacity = hasY ? '1' : '0';
+      const normalJoint = document.getElementById('svg-normal-joint');
+      if (normalJoint) {
+        normalJoint.style.opacity = hasY ? '0' : '1';
+      }
+      const nBombs = [qty[0] > 0, qty[1] > 0, qty[2] > 0, qty[3] > 0].filter(Boolean).length;
+      document.getElementById('pump-badge-txt').textContent = nBombs + (nBombs === 1 ? ' Bomba' : ' Bombas');
+
+      // Trajectory SVG
+      renderTraj(tech.direction, tech.depth, tech.caudal_max);
+
+      // Charts
+      renderCharts(costs, qty);
+
+      // Table
+      renderTable();
+
+      // Totals
+      document.getElementById('sim-total-badge').textContent = '$' + fmt(total) + ' USD';
+      document.getElementById('sim-total-cell').textContent = '$' + fmtD(total);
+    }
+
+    function getBezierSubcurve(P0, P1, P2, P3, t) {
+      const lerp = (a, b, t) => a + (b - a) * t;
+      const lerp2d = (a, b, t) => ({ x: lerp(a.x, b.x, t), y: lerp(a.y, b.y, t) });
+
+      const P01 = lerp2d(P0, P1, t);
+      const P12 = lerp2d(P1, P2, t);
+      const P23 = lerp2d(P2, P3, t);
+      const P012 = lerp2d(P01, P12, t);
+      const P123 = lerp2d(P12, P23, t);
+      const P0123 = lerp2d(P012, P123, t);
+
+      const path = `M ${P0.x.toFixed(1)} ${P0.y.toFixed(1)} C ${P01.x.toFixed(1)} ${P01.y.toFixed(1)}, ${P012.x.toFixed(1)} ${P012.y.toFixed(1)}, ${P0123.x.toFixed(1)} ${P0123.y.toFixed(1)}`;
+
+      const vx = P0123.x - P012.x;
+      const vy = P0123.y - P012.y;
+      const angle = (Math.atan2(vy, vx) * 180 / Math.PI) - 90;
+
+      return { path, endPoint: P0123, angle };
+    }
+
+    function renderTraj(dir, depth, caudal) {
+      const casing = document.getElementById('traj-casing');
+      const inner = document.getElementById('traj-inner');
+      const tubing = document.getElementById('traj-tubing');
+      const esp = document.getElementById('traj-esp');
+      const lbl = document.getElementById('traj-depth-label');
+
+      const curves = {
+        Vertical: {
+          P0: { x: 70, y: 10 },
+          P1: { x: 70, y: 35 },
+          P2: { x: 70, y: 60 },
+          P3: { x: 70, y: 80 }
+        },
+        Desviado: {
+          P0: { x: 70, y: 10 },
+          P1: { x: 70, y: 50 },
+          P2: { x: 160, y: 65 },
+          P3: { x: 180, y: 80 }
+        },
+        Horizontal: {
+          P0: { x: 70, y: 10 },
+          P1: { x: 70, y: 55 },
+          P2: { x: 180, y: 82 },
+          P3: { x: 420, y: 82 }
+        }
+      };
+
+      const pts = curves[dir] || curves.Vertical;
+
+      const fullCasing = getBezierSubcurve(pts.P0, pts.P1, pts.P2, pts.P3, 1.0);
+      casing.setAttribute('d', fullCasing.path);
+
+      const innerCasing = getBezierSubcurve(pts.P0, pts.P1, pts.P2, pts.P3, 0.97);
+      inner.setAttribute('d', innerCasing.path);
+
+      const tTubing = 0.65;
+      const prodTubing = getBezierSubcurve(pts.P0, pts.P1, pts.P2, pts.P3, tTubing);
+      tubing.setAttribute('d', prodTubing.path);
+
+      const ep = prodTubing.endPoint;
+      esp.setAttribute('transform', `translate(${ep.x}, ${ep.y}) rotate(${prodTubing.angle.toFixed(1)}, 0, 0)`);
+
+      lbl.textContent = fmtN(Math.round(depth)) + ' ft MD';
+    }
+
+    function getItemName(i, tech) {
+      if (i < 15) return ITEMS[i];
+      if (i === 15) return "SERVICIOS RUN";
+      if (i === 16) return "SERVICIOS DE PULL";
+
+      const kva = tech && tech.variador ? parseInt(tech.variador) : 200;
+      const isJVA = tech && tech.contrato === "JVA";
+      const surfaceNames = [
+        `Variador de ${kva} KVA Yaskawa 12 Pulsos`,
+        `Transformador ${kva} KVA` + (isJVA ? " K18" : ""),
+        `PST ${kva} KVA`,
+        `PQM`,
+        `Skid ${kva} KVA`,
+        `Ups para control MDS`,
+        `Dispositivo sobretensiones`
+      ];
+      return surfaceNames[i - 17] || "Elemento Superficie";
+    }
+
+    const collapsedStates = {
+      fondo: true,
+      servicios: true,
+      superficie: true
+    };
+
+    function toggleSection(sectionId) {
+      const contentLeft = document.getElementById('content-' + sectionId);
+      const chevronLeft = document.getElementById('chevron-' + sectionId);
+      const contentRight = document.getElementById('content-desc-' + sectionId);
+      const chevronRight = document.getElementById('chevron-desc-' + sectionId);
+
+      const isCollapsed = contentLeft.classList.contains('hidden');
+
+      if (isCollapsed) {
+        contentLeft.classList.remove('hidden');
+        if (contentRight) contentRight.classList.remove('hidden');
+        if (chevronLeft) chevronLeft.classList.add('rotate-90');
+        if (chevronRight) chevronRight.classList.add('rotate-90');
+        collapsedStates[sectionId] = false;
+      } else {
+        contentLeft.classList.add('hidden');
+        if (contentRight) contentRight.classList.add('hidden');
+        if (chevronLeft) chevronLeft.classList.remove('rotate-90');
+        if (chevronRight) chevronRight.classList.remove('rotate-90');
+        collapsedStates[sectionId] = true;
+      }
+    }
+
+    function toggleSectionClass(sectionId, shouldCollapse) {
+      const contentLeft = document.getElementById('content-' + sectionId);
+      const chevronLeft = document.getElementById('chevron-' + sectionId);
+      const contentRight = document.getElementById('content-desc-' + sectionId);
+      const chevronRight = document.getElementById('chevron-desc-' + sectionId);
+
+      if (contentLeft && chevronLeft) {
+        if (shouldCollapse) {
+          contentLeft.classList.add('hidden');
+          chevronLeft.classList.remove('rotate-90');
+        } else {
+          contentLeft.classList.remove('hidden');
+          chevronLeft.classList.add('rotate-90');
+        }
+      }
+      if (contentRight && chevronRight) {
+        if (shouldCollapse) {
+          contentRight.classList.add('hidden');
+          chevronRight.classList.remove('rotate-90');
+        } else {
+          contentRight.classList.remove('hidden');
+          chevronRight.classList.add('rotate-90');
+        }
+      }
+    }
+
+    function renderCharts(costs, qty) {
+      const activePalette = PALETTES[currentTheme];
+
+      // Categorize
+      const cats = { Bombas: 0, Motor: 0, 'Protector/Sello': 0, Cable: 0, Admisión: 0, Sensores: 0, Servicios: 0, 'Eq. Superficie': 0, Accesorios: 0 };
+      for (let i = 0; i < costs.length; i++) {
+        const v = costs[i] * qty[i];
+        if (i < 15) {
+          const item = ITEMS[i];
+          if (item.startsWith('BOMBA')) cats['Bombas'] += v;
+          else if (item === 'MOTOR') cats['Motor'] += v;
+          else if (item === 'PROTECTOR TANDEM') cats['Protector/Sello'] += v;
+          else if (item === 'CABLE DE POTENCIA') cats['Cable'] += v;
+          else if (item === 'ADMISION') cats['Admisión'] += v;
+          else if (item.includes('SENSOR')) cats['Sensores'] += v;
+          else cats['Accesorios'] += v;
+        } else if (i === 15 || i === 16) {
+          cats['Servicios'] += v;
+        } else if (i >= 17) {
+          cats['Eq. Superficie'] += v;
+        }
+      }
+      const labels = Object.keys(cats).filter(k => cats[k] > 0);
+      const data = labels.map(k => cats[k]);
+      const total = data.reduce((a, b) => a + b, 0);
+
+      // Segment comparison: Fondo, Servicios, Superficie
+      let valFondo = 0;
+      let valServicios = 0;
+      let valSuperficie = 0;
+      for (let i = 0; i < costs.length; i++) {
+        const v = costs[i] * qty[i];
+        if (i < 15) {
+          valFondo += v;
+        } else if (i === 15 || i === 16) {
+          valServicios += v;
+        } else if (i >= 17) {
+          valSuperficie += v;
+        }
+      }
+
+      const segLabels = ['Fondo', 'Servicios', 'Superficie'];
+      const segData = [valFondo, valServicios, valSuperficie];
+      const segTotal = valFondo + valServicios + valSuperficie;
+
+      const segColors = currentTheme === 'jade'
+        ? ['#13343d', '#8fbe9f', '#a1a7b3']
+        : ['#123d38', '#38877c', '#a1a7b3'];
+
+      // Render Segmentos Pie
+      if (chartSegmentos) chartSegmentos.destroy();
+      chartSegmentos = new Chart(document.getElementById('chartSegmentos'), {
+        type: 'pie',
+        plugins: [ChartDataLabels],
+        data: {
+          labels: segLabels,
+          datasets: [{
+            data: segData,
+            backgroundColor: segColors,
+            borderWidth: 1.5,
+            borderColor: '#fff'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: ctx => ` $${fmt(ctx.parsed)} (${segTotal > 0 ? ((ctx.parsed / segTotal) * 100).toFixed(1) : 0}%)`
+              }
+            },
+            datalabels: {
+              display: true,
+              formatter: (value, ctx) => {
+                if (segTotal === 0) return '';
+                let pct = (value * 100 / segTotal);
+                return pct > 3 ? pct.toFixed(1) + '%' : '';
+              },
+              color: '#fff',
+              font: {
+                weight: 'bold',
+                size: 10
+              }
+            }
+          }
+        }
+      });
+
+      // Segment Legend
+      const segLeg = document.getElementById('segmentos-legend');
+      if (segLeg) {
+        segLeg.innerHTML = segLabels.map((l, i) => `
+          <div class="flex items-center justify-between text-[10px] leading-tight py-0.5">
+            <div class="flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full flex-shrink-0" style="background:${segColors[i]}"></span>
+              <span class="font-500" style="color:var(--ink-600)">${l}</span>
+            </div>
+            <span class="mono font-600" style="color:var(--ink-800)">$${fmt(segData[i])}</span>
+          </div>`).join('');
+      }
+
+      // Donut
+      if (chartDonut) chartDonut.destroy();
+      chartDonut = new Chart(document.getElementById('chartDonut'), {
+        type: 'doughnut',
+        plugins: [ChartDataLabels],
+        data: { labels, datasets: [{ data, backgroundColor: activePalette.slice(0, labels.length), borderWidth: 2, borderColor: '#fff' }] },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '58%',
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: ctx => ` $${fmt(ctx.parsed)} (${((ctx.parsed / total) * 100).toFixed(1)}%)`
+              }
+            },
+            datalabels: {
+              display: true,
+              formatter: (value, ctx) => {
+                if (total === 0) return '';
+                let pct = (value * 100 / total);
+                return pct > 4 ? pct.toFixed(1) + '%' : '';
+              },
+              color: '#fff',
+              font: {
+                weight: 'bold',
+                size: 9
+              }
+            }
+          }
+        }
+      });
+
+      // Custom legend
+      const leg = document.getElementById('donut-legend');
+      leg.innerHTML = labels.map((l, i) => `
+    <div class="flex items-center justify-between text-[10px] leading-tight py-0.5">
+      <div class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full flex-shrink-0" style="background:${activePalette[i]}"></span><span class="font-500" style="color:var(--ink-600)">${l}</span></div>
+      <span class="mono font-600" style="color:var(--ink-800)">$${fmt(data[i])}</span>
+    </div>`).join('');
+
+      // Bar - total costs of non-zero active items ordered by category
+      const activeItems = [];
+      for (let i = 0; i < costs.length; i++) {
+        if (qty[i] > 0 && costs[i] * qty[i] > 0) {
+          const name = getItemName(i, liveData.tech);
+          activeItems.push({
+            label: name.split('(')[0].trim(),
+            val: costs[i] * qty[i],
+            qty: qty[i],
+            category: i < 15 ? 'Fondo' : (i === 15 || i === 16 ? 'Servicios' : 'Superficie')
+          });
+        }
+      }
+
+      const servicesList = activeItems.filter(x => x.category === 'Servicios');
+      const surfaceList = activeItems.filter(x => x.category === 'Superficie');
+      const fondoList = activeItems.filter(x => x.category === 'Fondo').sort((a, b) => b.val - a.val);
+
+      const barItems = [...servicesList, ...surfaceList, ...fondoList];
+
+      const colors = currentTheme === 'jade'
+        ? { fondo: '#4d9695', servicios: '#8fbe9f', superficie: '#a1a7b3' }
+        : { fondo: '#1a524b', servicios: '#38877c', superficie: '#a1a7b3' };
+
+      if (chartBar) chartBar.destroy();
+      chartBar = new Chart(document.getElementById('chartBar'), {
+        type: 'bar',
+        data: {
+          labels: barItems.map(x => x.label),
+          datasets: [{
+            data: barItems.map(x => x.val),
+            backgroundColor: barItems.map(x =>
+              x.category === 'Servicios' ? colors.servicios : (x.category === 'Superficie' ? colors.superficie : colors.fondo)
+            ),
+            borderRadius: 4,
+            maxBarThickness: 12
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          indexAxis: 'y',
+          layout: { padding: { left: 8, right: 12, top: 0, bottom: 0 } },
+          plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` $${fmtD(ctx.parsed.x)}` } } },
+          scales: {
+            x: { grid: { display: false }, ticks: { font: { size: 8, family: 'DM Sans' }, callback: v => '$' + fmtN(v) } },
+            y: { grid: { display: false }, ticks: { font: { size: 7.5, family: 'DM Sans' }, maxRotation: 0 } }
+          }
+        }
+      });
+
+      // Campo comparison bar
+      const campoData = Object.keys(DB[campo]).map(p => {
+        const d = DB[campo][p];
+        return { label: p, val: d.costs.reduce((s, c, i) => s + c * d.qty[i], 0) };
+      });
+
+      const cmpColors = currentTheme === 'jade'
+        ? { sel: '#13343d', other: '#e0e0cb' }
+        : { sel: '#123d38', other: '#c9e8e4' };
+
+      if (chartCampo) chartCampo.destroy();
+      chartCampo = new Chart(document.getElementById('chartCampo'), {
+        type: 'bar',
+        data: { labels: campoData.map(x => x.label), datasets: [{ data: campoData.map(x => x.val), backgroundColor: campoData.map(x => x.label === pozo ? cmpColors.sel : cmpColors.other), borderRadius: 5, maxBarThickness: 18 }] },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          layout: { padding: { left: 5, right: 5, top: 0, bottom: 12 } },
+          plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` $${fmt(ctx.parsed.y)}` } } },
+          scales: {
+            x: { grid: { display: false }, ticks: { font: { size: 7.5, family: 'DM Sans' }, maxRotation: 45, minRotation: 45 } },
+            y: { grid: { color: '#f3f4f6' }, ticks: { font: { size: 7.5, family: 'DM Sans' }, callback: v => '$' + fmtN(v) } }
+          }
+        }
+      });
+
+      if (!garantiasCollapsed) {
+        renderRunLifeChart();
+      }
+    }
+
+    function renderTable() {
+      const { costs, qty, tech } = liveData;
+
+      let totalFondo = 0;
+      let totalServicios = 0;
+      let totalSuperficie = 0;
+
+      const tbodyFondo = document.getElementById('sim-body-fondo');
+      const tbodyServicios = document.getElementById('sim-body-servicios');
+      const tbodySuperficie = document.getElementById('sim-body-superficie');
+
+      tbodyFondo.innerHTML = '';
+      tbodyServicios.innerHTML = '';
+      tbodySuperficie.innerHTML = '';
+
+      let countFondo = 0;
+      let countServicios = 0;
+      let countSuperficie = 0;
+
+      // Discount table elements
+      const tbodyDescFondo = document.getElementById('sim-body-desc-fondo');
+      const tbodyDescServicios = document.getElementById('sim-body-desc-servicios');
+      const tbodyDescSuperficie = document.getElementById('sim-body-desc-superficie');
+
+      if (tbodyDescFondo) tbodyDescFondo.innerHTML = '';
+      if (tbodyDescServicios) tbodyDescServicios.innerHTML = '';
+      if (tbodyDescSuperficie) tbodyDescSuperficie.innerHTML = '';
+
+      let totalDescFondo = 0;
+      let totalDescServicios = 0;
+      let totalDescSuperficie = 0;
+
+      let countDescFondo = 0;
+      let countDescServicios = 0;
+      let countDescSuperficie = 0;
+
+      for (let i = 0; i < costs.length; i++) {
+        const itemTotal = costs[i] * qty[i];
+        const unit = i < 15 ? (UNITS[ITEMS[i]] || 'und') : (i === 15 || i === 16 ? 'glb' : 'und');
+        const itemName = getItemName(i, tech);
+
+        // Left Row: original CAPEX
+        const tr = document.createElement('tr');
+        tr.id = 'row-' + i;
+        tr.className = 'row-hover transition-colors sim-row';
+        tr.setAttribute('data-index', i);
+
+        tr.innerHTML = `
+          <td class="px-5 py-2 text-[11px] font-500 text-gray-700">${itemName}</td>
+          <td class="px-5 py-2 text-center">
+            <input type="number" min="0" value="${qty[i]}" onchange="upd(${i},'qty',this.value)"
+              class="sim-input text-center w-20" step="1">
+          </td>
+          <td class="px-5 py-2 text-center text-[10px] font-700 text-gray-400 uppercase">${unit}</td>
+          <td class="px-5 py-2 text-right">
+            <input type="number" min="0" value="${costs[i]}" onchange="upd(${i},'cost',this.value)"
+              class="sim-input text-right w-28" step="0.01">
+          </td>
+          <td id="cell-${i}" class="px-5 py-2 text-right mono text-[11px] font-600" style="color:${itemTotal > 0 ? 'var(--ink-900)' : 'var(--ink-200)'}">
+            $${fmtD(itemTotal)}
+          </td>`;
+
+        if (i < 15) {
+          tbodyFondo.appendChild(tr);
+          totalFondo += itemTotal;
+          if (qty[i] > 0) countFondo++;
+        } else if (i === 15 || i === 16) {
+          tbodyServicios.appendChild(tr);
+          totalServicios += itemTotal;
+          if (qty[i] > 0) countServicios++;
+        } else if (i >= 17) {
+          tbodySuperficie.appendChild(tr);
+          totalSuperficie += itemTotal;
+          if (qty[i] > 0) countSuperficie++;
+        }
+
+        // Right Row: Discounts
+        const discPct = getDiscountPercentage(i);
+        const discCost = costs[i] * (1 - discPct);
+        const discTotal = discCost * qty[i];
+
+        let controlsHtml = '';
+        if (i >= 0 && i <= 6) { // Bombas, Admisión, Protector, Motor
+          const sel = discountSelections[i] || 'none';
+          controlsHtml = `
+            <select onchange="updateDiscountOption(${i}, this.value)" class="sim-input text-[10px] w-full py-0.5 px-1 bg-white border border-gray-200 rounded font-500 text-gray-700 focus:outline-none focus:ring-1 focus:ring-teal-500">
+              <option value="none" ${sel === 'none' ? 'selected' : ''}>Ninguno (0%)</option>
+              <option value="same-1-1" ${sel === 'same-1-1' ? 'selected' : ''}>Misma 1-1 (10%)</option>
+              <option value="same-1-2" ${sel === 'same-1-2' ? 'selected' : ''}>Misma 1-2 (13%)</option>
+              <option value="same-1-3" ${sel === 'same-1-3' ? 'selected' : ''}>Misma 1-3 (15%)</option>
+              <option value="diff-1-1" ${sel === 'diff-1-1' ? 'selected' : ''}>Dif. 1-1 (5%)</option>
+              <option value="diff-1-2" ${sel === 'diff-1-2' ? 'selected' : ''}>Dif. 1-2 (6%)</option>
+              <option value="diff-1-3" ${sel === 'diff-1-3' ? 'selected' : ''}>Dif. 1-3 (7%)</option>
+            </select>
+          `;
+        } else if (i === 10) { // Cable
+          const checked = discountSelections[i] || false;
+          controlsHtml = `
+            <label class="inline-flex items-center gap-1.5 cursor-pointer justify-center w-full">
+              <input type="checkbox" onchange="updateDiscountOption(${i}, this.checked)" ${checked ? 'checked' : ''} class="w-3.5 h-3.5 text-teal-600 border-gray-300 rounded focus:ring-teal-500">
+              <span class="text-[10px] font-500 text-gray-600">Reuso (30%)</span>
+            </label>
+          `;
+        } else {
+          controlsHtml = `<span class="text-[10px] text-gray-400 font-500">—</span>`;
+        }
+
+        const pctStr = discPct > 0
+          ? `<span class="tag tag-green" style="font-size: 9px; padding: 1px 4px; border-radius: 4px;">-${Math.round(discPct * 100)}%</span>`
+          : `<span class="text-[10px] text-gray-400 font-500">0%</span>`;
+
+        const trDesc = document.createElement('tr');
+        trDesc.id = 'row-desc-' + i;
+        trDesc.className = 'row-hover transition-colors sim-row-desc';
+        trDesc.setAttribute('data-index', i);
+
+        // Plain text name
+        const plainName = getItemName(i, tech, false);
+
+        trDesc.innerHTML = `
+          <td class="px-5 py-2 text-[11px] font-500 text-gray-700">${plainName}</td>
+          <td class="px-5 py-2 text-center">${controlsHtml}</td>
+          <td class="px-5 py-2 text-center font-600 text-gray-700">${pctStr}</td>
+          <td class="px-5 py-2 text-right mono text-[11px] font-500 text-gray-500">$${fmtD(discCost)}</td>
+          <td class="px-5 py-2 text-right mono text-[11px] font-600" style="color:${discTotal > 0 ? 'var(--petrol-700)' : 'var(--ink-200)'}">
+            $${fmtD(discTotal)}
+          </td>
+        `;
+
+        if (i < 15) {
+          if (tbodyDescFondo) tbodyDescFondo.appendChild(trDesc);
+          totalDescFondo += discTotal;
+          if (qty[i] > 0) countDescFondo++;
+        } else if (i === 15 || i === 16) {
+          if (tbodyDescServicios) tbodyDescServicios.appendChild(trDesc);
+          totalDescServicios += discTotal;
+          if (qty[i] > 0) countDescServicios++;
+        } else if (i >= 17) {
+          if (tbodyDescSuperficie) tbodyDescSuperficie.appendChild(trDesc);
+          totalDescSuperficie += discTotal;
+          if (qty[i] > 0) countDescSuperficie++;
+        }
+      }
+
+      // Update original section totals in header buttons
+      document.getElementById('section-total-fondo').textContent = '$' + fmtD(totalFondo);
+      document.getElementById('section-total-servicios').textContent = '$' + fmtD(totalServicios);
+      document.getElementById('section-total-superficie').textContent = '$' + fmtD(totalSuperficie);
+
+      // Update original badges
+      document.getElementById('badge-count-fondo').textContent = countFondo + (countFondo === 1 ? ' ítem activo' : ' ítems activos');
+      document.getElementById('badge-count-servicios').textContent = countServicios + (countServicios === 1 ? ' ítem activo' : ' ítems activos');
+      document.getElementById('badge-count-superficie').textContent = countSuperficie + (countSuperficie === 1 ? ' ítem activo' : ' ítems activos');
+
+      // Update discount section totals in header buttons
+      const sectionTotalDescFondo = document.getElementById('section-total-desc-fondo');
+      if (sectionTotalDescFondo) sectionTotalDescFondo.textContent = '$' + fmtD(totalDescFondo);
+
+      const sectionTotalDescServicios = document.getElementById('section-total-desc-servicios');
+      if (sectionTotalDescServicios) sectionTotalDescServicios.textContent = '$' + fmtD(totalDescServicios);
+
+      const sectionTotalDescSuperficie = document.getElementById('section-total-desc-superficie');
+      if (sectionTotalDescSuperficie) sectionTotalDescSuperficie.textContent = '$' + fmtD(totalDescSuperficie);
+
+      // Update discount badges
+      const badgeCountDescFondo = document.getElementById('badge-count-desc-fondo');
+      if (badgeCountDescFondo) badgeCountDescFondo.textContent = countDescFondo + (countDescFondo === 1 ? ' ítem activo' : ' ítems activos');
+
+      const badgeCountDescServicios = document.getElementById('badge-count-desc-servicios');
+      if (badgeCountDescServicios) badgeCountDescServicios.textContent = countDescServicios + (countDescServicios === 1 ? ' ítem activo' : ' ítems activos');
+
+      const badgeCountDescSuperficie = document.getElementById('badge-count-desc-superficie');
+      if (badgeCountDescSuperficie) badgeCountDescSuperficie.textContent = countDescSuperficie + (countDescSuperficie === 1 ? ' ítem activo' : ' ítems activos');
+
+      // Update grand totals
+      const grandTotal = totalFondo + totalServicios + totalSuperficie;
+      document.getElementById('sim-total-badge').textContent = '$' + fmt(grandTotal) + ' USD';
+      document.getElementById('sim-total-cell').textContent = '$' + fmtD(grandTotal);
+
+      const grandDescTotal = totalDescFondo + totalDescServicios + totalDescSuperficie;
+      const totalSaving = grandTotal - grandDescTotal;
+
+      const simDiscBadge = document.getElementById('sim-disc-badge');
+      if (simDiscBadge) simDiscBadge.textContent = '$' + fmt(grandDescTotal) + ' USD con Desc.';
+
+      const simSavingBadge = document.getElementById('sim-saving-badge');
+      if (simSavingBadge) simSavingBadge.textContent = '$' + fmt(totalSaving) + ' Ahorro';
+
+      const simSavingCell = document.getElementById('sim-saving-cell');
+      if (simSavingCell) simSavingCell.textContent = 'Ahorro: $' + fmtD(totalSaving);
+
+      const simDiscCell = document.getElementById('sim-disc-cell');
+      if (simDiscCell) simDiscCell.textContent = '$' + fmtD(grandDescTotal);
+
+      // Apply collapse/expand classes
+      toggleSectionClass('fondo', collapsedStates.fondo);
+      toggleSectionClass('servicios', collapsedStates.servicios);
+      toggleSectionClass('superficie', collapsedStates.superficie);
+    }
+
+    function upd(idx, field, val) {
+      if (field === 'qty') liveData.qty[idx] = Math.max(0, parseFloat(val) || 0);
+      if (field === 'cost') liveData.costs[idx] = Math.max(0, parseFloat(val) || 0);
+
+      renderTable();
+      updateDiscountKPIs();
+
+      // Update charts & trajectory
+      renderCharts(liveData.costs, liveData.qty);
+
+      // Update SVG pump opacity if Bomba 2 or 3 changed
+      if (idx === 1 || idx === 2) {
+        const p2 = liveData.qty[1] > 0, p3 = liveData.qty[2] > 0;
+        document.getElementById('svg-p2').style.opacity = p2 ? '1' : '0.2';
+        document.getElementById('svg-p3').style.opacity = p3 ? '1' : '0.2';
+        const nBombs = [liveData.qty[0] > 0, liveData.qty[1] > 0, liveData.qty[2] > 0, liveData.qty[3] > 0].filter(Boolean).length;
+        document.getElementById('pump-badge-txt').textContent = nBombs + (nBombs === 1 ? ' Bomba' : ' Bombas');
+      }
+    }
+
+    function hRow(keyword) {
+      document.querySelectorAll('.sim-row').forEach(r => r.style.background = '');
+      document.querySelectorAll('.sim-row-desc').forEach(r => r.style.background = '');
+      const kw = keyword.toLowerCase();
+
+      let sectionToOpen = null;
+
+      document.querySelectorAll('.sim-row').forEach((r) => {
+        const i = parseInt(r.getAttribute('data-index'));
+        const name = getItemName(i, liveData.tech);
+        if (name && name.toLowerCase().includes(kw)) {
+          r.style.background = 'var(--petrol-50)';
+
+          const rDesc = document.getElementById('row-desc-' + i);
+          if (rDesc) rDesc.style.background = 'var(--petrol-50)';
+
+          if (i < 15) sectionToOpen = 'fondo';
+          else if (i === 15 || i === 16) sectionToOpen = 'servicios';
+          else if (i >= 17) sectionToOpen = 'superficie';
+
+          if (sectionToOpen && collapsedStates[sectionToOpen]) {
+            toggleSection(sectionToOpen);
+          }
+
+          setTimeout(() => {
+            r.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }, 100);
+        }
+      });
+    }
+
+    function fmt(n) { return Math.round(n).toLocaleString('en-US'); }
+    function fmtD(n) { return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+    function fmtN(n) { return n.toLocaleString('en-US'); }
+
+    // No zoom logic needed
+    function resetZoom() { }
+
+    // ══ EXCEL INTERFACE ══
+    function parseExcelNumber(val) {
+      if (typeof val === 'number') return val;
+      if (!val) return 0;
+      let str = String(val).trim().replace(/[^0-9.,-]/g, ''); // keep numbers, dots, commas, minus
+
+      // If it contains both dot and comma (e.g. 6.503,64 or 6,503.64)
+      if (str.includes('.') && str.includes(',')) {
+        if (str.indexOf('.') < str.indexOf(',')) {
+          // Spanish style: 6.503,64 -> remove dot, replace comma with dot
+          str = str.replace(/\./g, '').replace(/,/g, '.');
+        } else {
+          // US style: 6,503.64 -> remove comma
+          str = str.replace(/,/g, '');
+        }
+      } else if (str.includes(',')) {
+        // Only contains comma (e.g. 6503,64 or 6,503)
+        // Check if it looks like decimal (e.g. comma followed by 1, 2, or 3 digits at the end)
+        const parts = str.split(',');
+        if (parts.length === 2 && parts[1].length <= 2) {
+          str = str.replace(/,/g, '.');
+        } else {
+          // Thousands separator: 6,503 -> 6503
+          str = str.replace(/,/g, '');
+        }
+      }
+      return parseFloat(str) || 0;
+    }
+
+    function importExcelFiles(event) {
+      const files = event.target.files;
+      if (!files.length) return;
+
+      const statusEl = document.getElementById('upload-status');
+      statusEl.textContent = "Procesando...";
+      statusEl.style.color = "var(--ink-500)";
+
+      let filesProcessed = 0;
+      let matchedWellsCount = 0;
+      let errorOccurred = false;
+
+      // Temporary store for Indice sheet data
+      const indiceMap = {};
+
+      const fileList = Array.from(files);
+
+      fileList.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          try {
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+
+            // Determine file type based on sheet names
+            const sheetNames = workbook.SheetNames;
+
+            if (sheetNames.includes("MATRIZ")) {
+              // It's the technical specs matrix (Matriz pozos Tipo Proceso ESP.xlsx)
+              const sheet = workbook.Sheets["MATRIZ"];
+              const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+              // Parse MATRIZ sheet
+              let headerRowIdx = -1;
+              for (let r = 0; r < rows.length; r++) {
+                const row = rows[r];
+                if (row && row.some(cell => String(cell).toLowerCase().includes("pozo tipo") || String(cell).toLowerCase().includes("pozos tipo"))) {
+                  headerRowIdx = r;
+                  break;
+                }
+              }
+
+              if (headerRowIdx !== -1) {
+                const headers = rows[headerRowIdx];
+                const colMap = {};
+                headers.forEach((h, idx) => {
+                  const val = String(h).toLowerCase().trim();
+                  if (val.includes("campo")) colMap.campo = idx;
+                  else if (val.includes("pozo") || val.includes("nomenclatura")) {
+                    if (colMap.pozo === undefined) colMap.pozo = idx; // first occurrence
+                  }
+                  else if (val.includes("material")) colMap.material = idx;
+                  else if (val.includes("cable")) {
+                    if (colMap.cable === undefined) colMap.cable = idx;
+                  }
+                  else if (val.includes("profundidad")) colMap.profundidad = idx;
+                  else if (val.includes("estabilizaci")) colMap.estab = idx;
+                  else if (val.includes("slim")) colMap.slim = idx;
+                  else if (val.includes("caudal")) {
+                    if (colMap.caudal_min === undefined) colMap.caudal_min = idx;
+                    else colMap.caudal_max = idx;
+                  }
+                  else if (val.includes("tdh")) {
+                    if (colMap.tdh_min === undefined) colMap.tdh_min = idx;
+                    else colMap.tdh_max = idx;
+                  }
+                  else if (val.includes("intake")) {
+                    if (colMap.depth === undefined) colMap.depth = idx;
+                  }
+                  else if (val.includes("direccion")) colMap.direction = idx;
+                  else if (val.includes("y-tool") || val.includes("accesorios")) {
+                    if (colMap.ytool === undefined) colMap.ytool = idx;
+                  }
+                  else if (val === "bomba") colMap.bomba = idx;
+                  else if (val === "motor") colMap.motor = idx;
+                });
+
+                // Parse rows below headers
+                for (let r = headerRowIdx + 1; r < rows.length; r++) {
+                  const row = rows[r];
+                  if (!row || !row[colMap.pozo]) continue;
+
+                  const campoExcel = String(row[colMap.campo] || "").toUpperCase().trim();
+                  const pozoExcel = String(row[colMap.pozo] || "").trim();
+
+                  if (!campoExcel || pozoExcel.toLowerCase().startsWith("pozo") || pozoExcel.toLowerCase().startsWith("total")) continue;
+
+                  // Find matching field and well in DB
+                  const matchedField = findFieldMatch(campoExcel);
+                  if (matchedField) {
+                    const matchedWell = findWellMatch(matchedField, pozoExcel);
+                    if (matchedWell) {
+                      const tech = DB[matchedField][matchedWell].tech;
+                      if (colMap.material !== undefined) tech.material = String(row[colMap.material] || "").toUpperCase().trim();
+                      if (colMap.cable !== undefined) tech.cable = String(row[colMap.cable] || "").trim();
+                      if (colMap.profundidad !== undefined) tech.profundidad = parseExcelNumber(row[colMap.profundidad]) || 0;
+                      if (colMap.estab !== undefined) tech.estab = String(row[colMap.estab] || "").trim();
+                      if (colMap.slim !== undefined) tech.slim = String(row[colMap.slim] || "").trim() === "SLIM" ? "SLIM" : "";
+                      if (colMap.ytool !== undefined) {
+                        const val = String(row[colMap.ytool] || "").trim();
+                        tech.ytool = (val.toLowerCase() === "no" || val === "-" || !val) ? "" : val;
+                      }
+                      if (colMap.caudal_min !== undefined) tech.caudal_min = parseExcelNumber(row[colMap.caudal_min]) || 0;
+                      if (colMap.caudal_max !== undefined) tech.caudal_max = parseExcelNumber(row[colMap.caudal_max]) || 0;
+                      if (colMap.tdh_min !== undefined) tech.tdh_min = parseExcelNumber(row[colMap.tdh_min]) || 0;
+                      if (colMap.tdh_max !== undefined) tech.tdh_max = parseExcelNumber(row[colMap.tdh_max]) || 0;
+                      if (colMap.depth !== undefined) tech.depth = parseExcelNumber(row[colMap.depth]) || tech.profundidad;
+                      if (colMap.direction !== undefined) tech.direction = String(row[colMap.direction] || "").trim();
+                      if (colMap.bomba !== undefined) tech.bomba = String(row[colMap.bomba] || "").trim();
+                      if (colMap.motor !== undefined) tech.motor = String(row[colMap.motor] || "").trim();
+
+                      matchedWellsCount++;
+                    }
+                  }
+                }
+              }
+            } else {
+              // It's the Valores actuales / Cost matrix file (Valores actuales ESP (1).xlsx)
+
+              // A. First parse SUPERFICIE sheet if present to update vsdPrices
+              if (sheetNames.includes("SUPERFICIE")) {
+                const sheet = workbook.Sheets["SUPERFICIE"];
+                const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+                const headers = rows[1];
+                if (headers) {
+                  headers.forEach((h, colIdx) => {
+                    if (!h) return;
+                    const hStr = String(h).toLowerCase().trim();
+                    let contract = null;
+                    if (hStr.includes("jva")) contract = "JVA";
+                    else if (hStr.includes("100%")) contract = "100%";
+
+                    if (contract) {
+                      const kvaMatch = hStr.match(/(\d+)\s*kva/);
+                      if (kvaMatch) {
+                        const kva = parseInt(kvaMatch[1]);
+                        const prices = [];
+                        for (let rIdx = 2; rIdx <= 8; rIdx++) {
+                          if (rows[rIdx] && rows[rIdx][colIdx] !== undefined) {
+                            prices.push(parseExcelNumber(rows[rIdx][colIdx]));
+                          } else {
+                            prices.push(0);
+                          }
+                        }
+                        if (!vsdPrices[contract]) vsdPrices[contract] = {};
+                        vsdPrices[contract][kva] = prices;
+                      }
+                    }
+                  });
+                }
+              }
+
+              // 1. Process Indice sheet if present
+              if (sheetNames.includes("Indice")) {
+                const sheet = workbook.Sheets["Indice"];
+                const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+                let headerRowIdx = -1;
+                for (let r = 0; r < rows.length; r++) {
+                  const row = rows[r];
+                  if (row && row.some(cell => String(cell).toLowerCase().includes("pozo") && row.some(c => String(c).toLowerCase().includes("superficie")))) {
+                    headerRowIdx = r;
+                    break;
+                  }
+                }
+
+                if (headerRowIdx !== -1) {
+                  const headers = rows[headerRowIdx];
+                  let colPozo, colEquip, colVariador, colContrato;
+                  headers.forEach((h, idx) => {
+                    const val = String(h).toLowerCase().trim();
+                    if (val.includes("pozo") || val.includes("tipo")) colPozo = idx;
+                    else if (val.includes("superficie")) colEquip = idx;
+                    else if (val.includes("variador") || val.includes("vsd") || val.includes("kva")) colVariador = idx;
+                    else if (val.includes("contrato")) colContrato = idx;
+                  });
+
+                  for (let r = headerRowIdx + 1; r < rows.length; r++) {
+                    const row = rows[r];
+                    if (!row || !row[colPozo]) continue;
+                    const wellName = String(row[colPozo]).trim();
+                    const varVal = colVariador !== undefined ? String(row[colVariador] || "").trim() : "";
+                    const kvaVal = parseInt(varVal) || 0;
+                    const contractVal = colContrato !== undefined ? String(row[colContrato] || "").trim() : "";
+                    const contractStr = (contractVal === "1" || contractVal.includes("100")) ? "100%" : "JVA";
+
+                    indiceMap[norm(wellName)] = { kva: kvaVal, contrato: contractStr };
+                  }
+                }
+              }
+
+              // 2. Process all other sheets
+              sheetNames.forEach(sheetName => {
+                if (sheetName === "Indice" || sheetName === "SUPERFICIE") return;
+
+                // Find matching field
+                const matchedField = findFieldMatch(sheetName);
+                if (!matchedField) return;
+
+                const sheet = workbook.Sheets[sheetName];
+                const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+                // Scan rows to find well tables
+                for (let r = 0; r < rows.length; r++) {
+                  const row = rows[r];
+                  if (!row || !row.length) continue;
+
+                  // Check if any cell in the row matches a well name of this field
+                  let matchedWell = null;
+                  let wellCellIdx = -1;
+                  for (let c = 0; c < row.length; c++) {
+                    const cellVal = String(row[c] || "").trim();
+                    if (!cellVal) continue;
+
+                    matchedWell = findWellMatch(matchedField, cellVal);
+                    if (matchedWell) {
+                      wellCellIdx = c;
+                      break;
+                    }
+                  }
+
+                  if (matchedWell) {
+                    const tableStart = r;
+
+                    // Parse the header row (tableStart + 1) to get column indices
+                    const tableHeader = rows[tableStart + 1];
+                    if (!tableHeader) continue;
+
+                    let colItem = -1;
+                    let colQty = -1;
+                    let colPrice = -1;
+
+                    tableHeader.forEach((cell, idx) => {
+                      const cellStr = String(cell || "").toLowerCase().trim();
+                      if (cellStr.includes("descripcion") || cellStr.includes("item")) colItem = idx;
+                      else if (cellStr.includes("cantidad") || cellStr.includes("cant")) colQty = idx;
+                      else if (cellStr.includes("unitario") || cellStr.includes("precio") || cellStr.includes("valor unit") || cellStr.includes("v. unit")) colPrice = idx;
+                    });
+
+                    if (colItem === -1 || colQty === -1 || colPrice === -1) {
+                      colItem = wellCellIdx;
+                      colQty = wellCellIdx + 1;
+                      colPrice = wellCellIdx + 2;
+                    }
+
+                    // Let's parse the 15 items
+                    for (let i = 0; i < 15; i++) {
+                      const itemRow = rows[tableStart + 2 + i];
+                      if (!itemRow) continue;
+
+                      const itemName = String(itemRow[colItem] || "").trim();
+                      const qtyVal = parseExcelNumber(itemRow[colQty]) || 0;
+                      const costVal = parseExcelNumber(itemRow[colPrice]) || 0;
+
+                      // Map to correct index in DB
+                      let itemIdx = i;
+                      const normItemName = norm(itemName);
+                      ITEMS.slice(0, 15).forEach((it, idx) => {
+                        if (norm(it) === normItemName || normItemName.includes(norm(it)) || norm(it).includes(normItemName)) {
+                          itemIdx = idx;
+                        }
+                      });
+
+                      DB[matchedField][matchedWell].costs[itemIdx] = costVal;
+                      DB[matchedField][matchedWell].qty[itemIdx] = qtyVal;
+                    }
+                    matchedWellsCount++;
+
+                    // Skip rows of this table
+                    r = tableStart + 17;
+                  }
+                }
+              });
+            }
+
+            filesProcessed++;
+            if (filesProcessed === fileList.length) {
+              // Finish processing, apply Indice mappings and recalculate dynamically appended values
+              applyIndiceAndRecalculate(indiceMap);
+
+              statusEl.textContent = `¡Cargado! (${matchedWellsCount} pozos actualizados)`;
+              statusEl.style.color = "#10b981"; // green
+
+              // Reload visual elements
+              refreshDropdowns();
+              loadWell();
+            }
+          } catch (err) {
+            console.error("Error reading file:", err);
+            errorOccurred = true;
+            statusEl.textContent = "Error al procesar archivo";
+            statusEl.style.color = "#ef4444"; // red
+          }
+        };
+        reader.readAsArrayBuffer(file);
+      });
+    }
+
+    // Normalization helpers
+    function norm(str) {
+      if (!str) return "";
+      return String(str).toLowerCase()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]/g, "");
+    }
+
+    function findFieldMatch(excelFieldName) {
+      const normName = norm(excelFieldName);
+      for (const field of Object.keys(DB)) {
+        const normField = norm(field);
+        if (normField === normName || normField.includes(normName) || normName.includes(normField)) {
+          return field;
+        }
+      }
+      return null;
+    }
+
+    function findWellMatch(field, excelWellName) {
+      const normName = norm(excelWellName);
+      const cleanExcelName = excelWellName.split('(')[0];
+      const normClean = norm(cleanExcelName);
+
+      for (const well of Object.keys(DB[field])) {
+        const normWell = norm(well);
+        if (normWell === normName || normWell === normClean || normWell.includes(normClean) || cleanExcelName.toLowerCase().includes(well.toLowerCase()) || well.toLowerCase().includes(cleanExcelName.toLowerCase())) {
+          return well;
+        }
+      }
+      return null;
+    }
+
+    function applyIndiceAndRecalculate(indiceMap) {
+      Object.keys(DB).forEach(campoKey => {
+        const wells = DB[campoKey];
+        const mapping = serviceMapping[campoKey];
+
+        Object.keys(wells).forEach(wellKey => {
+          // Recalculate Run & Pull USD costs from serviceMapping
+          let runCOP = 0;
+          let pullCOP = 0;
+          if (mapping) {
+            if (mapping.run !== undefined) {
+              runCOP = mapping.run;
+              pullCOP = mapping.pull;
+            } else {
+              const normalizedWell = wellKey.toLowerCase().replace(/[^a-z0-9]/g, '');
+              let found = false;
+              for (const mapWellKey of Object.keys(mapping)) {
+                const normalizedMapWell = mapWellKey.toLowerCase().replace(/[^a-z0-9]/g, '');
+                if (normalizedWell.includes(normalizedMapWell) || normalizedMapWell.includes(normalizedWell)) {
+                  runCOP = mapping[mapWellKey].run;
+                  pullCOP = mapping[mapWellKey].pull;
+                  found = true;
+                  break;
+                }
+              }
+              if (!found && mapping.default) {
+                runCOP = mapping.default.run;
+                pullCOP = mapping.default.pull;
+              }
+            }
+          }
+          const runUSD = Number((runCOP / 4000).toFixed(2));
+          const pullUSD = Number((pullCOP / 4000).toFixed(2));
+
+          DB[campoKey][wellKey].costs[15] = runUSD;
+          DB[campoKey][wellKey].qty[15] = 1;
+          DB[campoKey][wellKey].costs[16] = pullUSD;
+          DB[campoKey][wellKey].qty[16] = 1;
+
+          // Apply surface equipment cost and VSD variador rating from Indice sheet
+          const normWell = norm(wellKey);
+          let kvaVal = 0;
+          let contractType = "100%";
+          let hasSurface = false;
+
+          // Default values based on current well type
+          if (campoKey === "QUIFA" || campoKey === "CAJUA") {
+            contractType = "JVA";
+          }
+          if (campoKey === "QUIFA") {
+            if (wellKey === "QF - Tipo 1" || wellKey === "QF - Tipo 2") { kvaVal = 320; hasSurface = true; }
+            else if (wellKey === "QF - Tipo 3" || wellKey === "QF - Tipo 4") { kvaVal = 340; hasSurface = true; }
+          } else if (campoKey === "CAJUA") { kvaVal = 340; hasSurface = true; }
+          else if (campoKey === "SABANERO") { kvaVal = 200; hasSurface = true; }
+          else if (campoKey === "CUBIRO") { kvaVal = 200; hasSurface = true; }
+          else if (campoKey === "CPE6 (HAMACA)") {
+            if (wellKey !== "Hamaca - tipo 6 (SLIM)") { kvaVal = 340; hasSurface = true; }
+          } else if (["CRAVOVIEJO", "ARRENDAJO", "CACHICAMO", "CASIMENA", "MAPACHE"].includes(campoKey)) {
+            kvaVal = 340;
+            hasSurface = true;
+          }
+
+          // Override if present in Indice sheet mapping
+          if (indiceMap[normWell] !== undefined) {
+            kvaVal = indiceMap[normWell].kva;
+            contractType = indiceMap[normWell].contrato;
+            hasSurface = kvaVal > 0;
+          }
+
+          DB[campoKey][wellKey].tech.contrato = contractType;
+          DB[campoKey][wellKey].tech.variador = kvaVal > 0 ? `${kvaVal} KVA` : "—";
+
+          // Update the 7 surface components
+          const sPrices = (hasSurface && vsdPrices[contractType] && vsdPrices[contractType][kvaVal])
+            ? vsdPrices[contractType][kvaVal]
+            : [0, 0, 0, 0, 0, 0, 0];
+
+          for (let sIdx = 0; sIdx < 7; sIdx++) {
+            DB[campoKey][wellKey].costs[17 + sIdx] = sPrices[sIdx];
+            DB[campoKey][wellKey].qty[17 + sIdx] = hasSurface ? 1 : 0;
+          }
+        });
+      });
+    }
+
+    let discountSelections = {};
+
+    function initDiscountSelections() {
+      discountSelections = {};
+      for (let i = 0; i <= 6; i++) {
+        discountSelections[i] = 'none';
+      }
+      discountSelections[10] = false;
+    }
+
+    function getDiscountPercentage(i) {
+      if (i >= 0 && i <= 6) { // Bombas, Admisión, Protector, Motor
+        const opt = discountSelections[i] || 'none';
+        if (opt === 'same-1-1') return 0.10;
+        if (opt === 'same-1-2') return 0.13;
+        if (opt === 'same-1-3') return 0.15;
+        if (opt === 'diff-1-1') return 0.05;
+        if (opt === 'diff-1-2') return 0.06;
+        if (opt === 'diff-1-3') return 0.07;
+        return 0.0;
+      }
+      if (i === 10) { // Cable de Potencia
+        const opt = discountSelections[i] || false;
+        return opt ? 0.30 : 0.0;
+      }
+      return 0.0;
+    }
+
+    function updateDiscountOption(i, val) {
+      discountSelections[i] = val;
+      renderTable();
+      updateDiscountKPIs();
+    }
+
+    function updateDiscountKPIs() {
+      if (!liveData) return;
+      const { costs, qty } = liveData;
+      let total = 0;
+      let totalDisc = 0;
+      for (let i = 0; i < costs.length; i++) {
+        total += costs[i] * qty[i];
+        const discPct = getDiscountPercentage(i);
+        totalDisc += costs[i] * (1 - discPct) * qty[i];
+      }
+      const saving = total - totalDisc;
+
+      const discContainer = document.getElementById('kpi-capex-disc-container');
+      const discValEl = document.getElementById('kpi-capex-disc');
+      const savingEl = document.getElementById('kpi-capex-saving');
+
+      if (discContainer && discValEl && savingEl) {
+        if (saving > 0) {
+          discContainer.classList.remove('hidden');
+          discValEl.textContent = '$' + fmt(totalDisc);
+          savingEl.textContent = 'Ahorro: $' + fmt(saving);
+        } else {
+          discContainer.classList.add('hidden');
+        }
+      }
+    }
+
+    let garantiasCollapsed = true;
+    let chartRunLife = null;
+    const RUN_LIFE_DATA = [
+      { campo: "Quifa", dias: 1200 },
+      { campo: "Cajua", dias: 1200 },
+      { campo: "Neiva", dias: 900 },
+      { campo: "Cubiro", dias: 900 },
+      { campo: "Casanare Este", dias: 900 },
+      { campo: "Cravo Viejo", dias: 900 },
+      { campo: "Cachicamo", dias: 900 },
+      { campo: "Llanos 19", dias: 900 },
+      { campo: "Mapache", dias: 900 },
+      { campo: "Casimena", dias: 900 },
+      { campo: "CPE-6", dias: 900 },
+      { campo: "Orito", dias: 800 },
+      { campo: "Guatiquia", dias: 700 },
+      { campo: "Arrendajo", dias: 700 },
+      { campo: "Corcel", dias: 700 },
+      { campo: "Corcel NE", dias: 700 },
+      { campo: "Canaguaro", dias: 600 },
+      { campo: "Rio Ariari", dias: 600 },
+      { campo: "Sabanero", dias: 600 },
+      { campo: "Guaduas y Abanico", dias: 600 },
+      { campo: "Bloques nuevos", dias: 365 }
+    ];
+
+    function toggleGarantias() {
+      const content = document.getElementById('content-garantias');
+      const chevron = document.getElementById('chevron-garantias');
+      garantiasCollapsed = !garantiasCollapsed;
+
+      if (!garantiasCollapsed) {
+        content.classList.remove('hidden');
+        chevron.classList.add('rotate-90');
+        renderRunLifeChart();
+        setTimeout(() => {
+          content.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }, 150);
+      } else {
+        content.classList.add('hidden');
+        chevron.classList.remove('rotate-90');
+      }
+    }
+
+    function renderRunLifeChart() {
+      if (!window.Chart) return;
+      const ctx = document.getElementById('chartRunLife');
+      if (!ctx) return;
+
+      const selColor = currentTheme === 'jade' ? '#2a6469' : '#1a524b';
+      const otherColor = currentTheme === 'jade' ? '#8fbe9f' : '#5ea89e';
+
+      const labels = RUN_LIFE_DATA.map(x => x.campo);
+      const dataValues = RUN_LIFE_DATA.map(x => x.dias);
+
+      const backgroundColors = RUN_LIFE_DATA.map(x => {
+        return x.campo.toLowerCase() === campo.toLowerCase() ? selColor : otherColor;
+      });
+
+      if (chartRunLife) chartRunLife.destroy();
+
+      chartRunLife = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: dataValues,
+            backgroundColor: backgroundColors,
+            borderRadius: 4,
+            maxBarThickness: 10
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          indexAxis: 'y',
+          layout: {
+            padding: { left: 5, right: 15, top: 5, bottom: 5 }
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: ctx => ` Run Life: ${ctx.parsed.x} días`
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { color: '#f3f4f6' },
+              ticks: {
+                font: { size: 8, family: 'DM Sans' },
+                callback: v => v + ' d'
+              },
+              title: {
+                display: true,
+                text: 'Días de Run Life',
+                font: { size: 9, weight: 'bold', family: 'DM Sans' }
+              }
+            },
+            y: {
+              grid: { display: false },
+              ticks: {
+                font: { size: 7.5, family: 'DM Sans' },
+                autoSkip: false
+              }
+            }
+          }
+        }
+      });
+    }
+  </script>
+</body>
+
+</html>
